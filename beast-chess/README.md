@@ -34,3 +34,7 @@ python3 -m http.server 8000
 2. `Code.gs` 내용을 붙여넣기
 3. `+` → HTML → 이름을 `index` 로 만들고 `index.html` 내용을 붙여넣기
 4. 배포 → 새 배포 → 유형: 웹 앱 → 배포 → 나온 URL을 아이 태블릿 홈 화면에 추가
+
+## 현재 배포된 웹앱
+- 게임 주소: https://script.google.com/macros/s/AKfycbwZYsD10I_IJh5dQYUS5BCk3VQKHqPp4SZTu-MEwtZ8c9dOeJ8_4Dl2i6qS1LI3xjpBKQ/exec
+- Apps Script 프로젝트: https://script.google.com/d/1zwOSv2LU7lZHaiA8kfBzoAaDzF1Cvj8V_7thdUsPinriBSrG_07CUlTB/edit
