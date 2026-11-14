@@ -242,6 +242,14 @@ input{font-family:inherit;color:var(--ink)}
 .menu-pick{margin-top:12px}
 @media (max-width:520px){ .slots{grid-template-columns:repeat(3,1fr)} .slot svg{width:70%;margin:0 auto} }
 
+/* 앱 설치 */
+.app-btn{margin-top:10px;font-size:18px}
+.qr-box{width:min(64vw,240px);margin:6px auto 4px;padding:10px;background:#fff;border:4px solid var(--ink);border-radius:20px;box-shadow:0 5px 0 var(--ink)}
+.qr-svg{width:100%;height:auto;display:block}
+.dl-btn{display:block;text-decoration:none;color:#fff;margin:14px 0 6px}
+.steps{text-align:left;font-size:15px;line-height:1.6;background:#f5f8ff;border:2px solid #dfe4f2;border-radius:14px;padding:10px 14px;margin:10px 0 12px}
+.steps b{color:var(--pink-d);font-weight:normal}
+
 /* 메뉴 시트 */
 .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 12px}
 .sheet-grid .btn{font-size:18px;padding:14px 6px}
@@ -295,6 +303,7 @@ input{font-family:inherit;color:var(--ink)}
       <button class="btn btn-yellow" id="mPick">🎨 캐릭터 고르기</button>
       <button class="btn btn-white" id="mRec">🏆 내 기록</button>
     </div>
+    <button class="btn btn-green wide app-btn" id="mApp">📱 안드로이드 앱 설치하기</button>
     <div class="levels" id="levels">
       <p style="margin:6px 0 10px">컴퓨터 실력을 골라요!</p>
       <div class="level-row">
@@ -387,6 +396,23 @@ input{font-family:inherit;color:var(--ink)}
     <p>각 캐릭터가 어떻게 움직이는지 알아봐요!</p>
     <div class="guide-list" id="guideList"></div>
     <button class="btn btn-yellow wide" id="guideClose" style="margin-top:14px">알겠어요! 👍</button>
+  </div>
+</div>
+
+<!-- 앱 설치 -->
+<div class="overlay" id="appDl">
+  <div class="card">
+    <h2>📱 안드로이드 앱 설치</h2>
+    <p>휴대폰 카메라로 QR 코드를 찍거나,<br>휴대폰에서 아래 버튼을 눌러 받으세요!</p>
+    <div class="qr-box"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41" shape-rendering="crispEdges" class="qr-svg"><path fill="#fff" d="M0 0h41v41h-41z"/><path class="qrline" stroke="#232a4d" d="M2 2.5h7m1 0h1m2 0h2m1 0h1m2 0h2m2 0h2m2 0h1m4 0h7m-37 1h1m5 0h1m2 0h2m1 0h1m1 0h2m2 0h1m1 0h2m2 0h2m2 0h1m1 0h1m5 0h1m-37 1h1m1 0h3m1 0h1m1 0h5m1 0h2m1 0h1m2 0h6m2 0h1m1 0h1m1 0h3m1 0h1m-37 1h1m1 0h3m1 0h1m2 0h1m4 0h1m2 0h1m3 0h2m2 0h2m3 0h1m1 0h3m1 0h1m-37 1h1m1 0h3m1 0h1m2 0h1m2 0h1m3 0h1m1 0h1m2 0h2m2 0h2m3 0h1m1 0h3m1 0h1m-37 1h1m5 0h1m1 0h2m1 0h3m2 0h1m3 0h1m1 0h1m3 0h1m3 0h1m5 0h1m-37 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-28 1h1m10 0h1m2 0h2m2 0h2m-29 1h1m1 0h1m3 0h2m2 0h3m2 0h2m3 0h1m1 0h1m1 0h1m1 0h1m4 0h1m2 0h1m1 0h1m-34 1h1m4 0h2m2 0h1m1 0h1m2 0h1m1 0h2m2 0h3m1 0h5m3 0h2m-36 1h1m4 0h2m3 0h1m3 0h1m1 0h1m1 0h1m1 0h3m3 0h1m2 0h1m1 0h2m2 0h1m-32 1h1m3 0h1m5 0h1m2 0h1m1 0h1m1 0h3m1 0h1m1 0h4m1 0h1m-34 1h1m3 0h3m1 0h1m2 0h1m1 0h1m2 0h1m3 0h1m3 0h1m2 0h2m1 0h2m1 0h1m2 0h1m-35 1h2m1 0h1m1 0h1m1 0h2m1 0h2m1 0h2m2 0h3m1 0h3m1 0h1m2 0h2m1 0h1m1 0h2m-37 1h7m2 0h1m1 0h1m2 0h2m1 0h1m1 0h1m3 0h1m3 0h4m2 0h2m1 0h1m-36 1h3m4 0h1m1 0h2m6 0h1m3 0h3m1 0h2m1 0h5m1 0h2m-37 1h4m1 0h4m2 0h1m1 0h1m2 0h1m2 0h2m3 0h1m2 0h5m-30 1h3m4 0h1m1 0h2m2 0h2m1 0h2m3 0h3m1 0h2m1 0h2m1 0h1m1 0h2m-37 1h1m1 0h5m1 0h2m2 0h5m2 0h3m1 0h3m1 0h3m4 0h1m1 0h1m-35 1h3m2 0h1m2 0h2m1 0h2m5 0h1m1 0h1m1 0h1m1 0h1m1 0h2m3 0h1m-34 1h1m1 0h2m1 0h4m5 0h3m2 0h2m1 0h1m1 0h1m1 0h3m1 0h2m1 0h1m1 0h1m-36 1h4m1 0h1m1 0h5m3 0h2m2 0h2m1 0h3m2 0h4m5 0h1m-36 1h1m1 0h1m1 0h3m2 0h1m1 0h2m1 0h1m2 0h2m2 0h2m1 0h1m1 0h1m5 0h4m-32 1h1m1 0h2m1 0h2m3 0h1m2 0h3m3 0h1m3 0h6m1 0h2m-36 1h1m2 0h1m1 0h2m2 0h1m1 0h1m1 0h1m4 0h1m4 0h1m2 0h1m2 0h1m4 0h2m-36 1h1m3 0h1m2 0h1m2 0h1m1 0h1m1 0h6m2 0h3m1 0h2m1 0h2m1 0h2m1 0h1m-37 1h3m3 0h2m1 0h1m2 0h1m1 0h2m3 0h1m1 0h4m2 0h1m2 0h1m1 0h3m1 0h1m-35 1h2m1 0h1m5 0h1m6 0h2m3 0h2m1 0h1m6 0h1m-34 1h2m1 0h1m2 0h3m1 0h1m2 0h1m1 0h2m2 0h2m1 0h1m1 0h1m2 0h7m2 0h1m-29 1h1m1 0h1m2 0h4m1 0h3m1 0h7m3 0h1m2 0h2m-37 1h7m1 0h3m2 0h3m2 0h2m1 0h1m1 0h1m4 0h1m1 0h1m1 0h1m3 0h1m-37 1h1m5 0h1m2 0h2m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1m3 0h3m3 0h1m-33 1h1m1 0h3m1 0h1m5 0h1m3 0h1m1 0h1m4 0h2m2 0h6m3 0h1m-37 1h1m1 0h3m1 0h1m4 0h3m1 0h2m2 0h2m2 0h2m1 0h1m2 0h1m2 0h2m1 0h1m-36 1h1m1 0h3m1 0h1m1 0h1m3 0h2m1 0h2m1 0h2m1 0h3m2 0h2m1 0h1m1 0h2m1 0h1m1 0h1m-37 1h1m5 0h1m2 0h3m2 0h3m5 0h3m3 0h3m1 0h2m-34 1h7m1 0h1m5 0h1m1 0h1m1 0h3m1 0h3m3 0h4m1 0h1m2 0h1"/></svg></div>
+    <a class="btn btn-blue dl-btn" id="dlLink" href="https://github.com/ramonbae01/game-for-kids/releases/latest/download/beast-chess.apk" target="_blank" rel="noopener">⬇️ 앱 내려받기 (APK)</a>
+    <div class="steps">
+      ① 내려받은 <b>beast-chess.apk</b>를 눌러요<br>
+      ② "출처를 알 수 없는 앱 설치"를 <b>허용</b>해요<br>
+      ③ 홈 화면의 <b>비스트 체스</b> 아이콘으로 실행!<br>
+      <span style="font-size:13px;opacity:.75">※ 안드로이드 폰 전용이에요. 새 버전도 같은 방법으로 설치하면 기록은 그대로 남아요.</span>
+    </div>
+    <button class="btn btn-white wide" id="appClose">닫기</button>
   </div>
 </div>
 
@@ -1772,6 +1798,11 @@ function updateMenuRec(){
   $('mRec').innerHTML = `🏆 내 기록<small>${REC.total.w}승 · $${REC.prize >= 1e6 ? (REC.prize/1e6).toFixed(1) + 'M' : REC.prize.toLocaleString()}</small>`;
 }
 $('mRec').onclick = () => openRecords('menu');
+/* 앱 설치 안내 (앱 안에서는 숨김) */
+if(window.AndroidNet) $('mApp').style.display = 'none';
+$('mApp').onclick = () => { hide('menu'); show('appDl'); };
+$('appClose').onclick = () => { hide('appDl'); show('menu'); };
+$('appDl').addEventListener('click', e => { if(e.target.id==='appDl') $('appClose').onclick(); });
 updateMenuRec();
 
 /* 안드로이드 뒤로 가기 버튼: 열린 창을 닫고, 처음 화면이면 앱을 내림 */
@@ -1779,6 +1810,7 @@ window.__androidBack = function(){
   const on = id => $(id).classList.contains('show');
   if(on('promo')) return true;
   if(on('guide')){ hide('guide'); return true; }
+  if(on('appDl')){ $('appClose').onclick(); return true; }
   if(on('records')){ $('recClose').onclick(); return true; }
   if(on('pick')){ $('pDone').onclick(); return true; }
   if(on('sheet')){ hide('sheet'); return true; }
