@@ -1,0 +1,61 @@
+name: 안드로이드 앱 만들기
+
+on:
+  push:
+    branches: [ main, 'claude/**' ]
+    paths: [ 'beast-chess/index.html', 'android/**', '.github/workflows/android.yml' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: 서명 키 준비 (Secrets에 KEYSTORE_BASE64가 있을 때만)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          fi
+
+      - name: APK 빌드
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle -p android assembleRelease --no-daemon --stacktrace
+
+      - name: 파일 이름 정리
+        run: cp android/app/build/outputs/apk/release/app-release.apk beast-chess.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beast-chess-apk
+          path: beast-chess.apk
+
+      - name: 다운로드 페이지(Release)에 올리기
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-v1.${{ github.run_number }}
+          name: 비스트 체스 앱 v1.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            📱 휴대폰에서 아래 **beast-chess.apk** 를 눌러 내려받고 설치하세요.
+            (처음 설치할 때 "출처를 알 수 없는 앱 설치 허용"이 필요할 수 있어요)
+          files: beast-chess.apk

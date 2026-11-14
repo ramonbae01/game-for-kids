@@ -1154,6 +1154,21 @@ function goHome(){
    온라인 대결 (Apps Script 또는 PC 서버 server.py)
    ========================================================= */
 const net = (() => {
+  if(window.AndroidNet){
+    // 안드로이드 앱: 앱이 대신 Apps Script 서버와 통신해요
+    const cbs = {}; let seq = 0;
+    window.__androidNetCb = (id, s) => { const f = cbs[id]; if(f){ delete cbs[id]; f(s); } };
+    return { ok:true, kind:'android', call:(a, p) => new Promise((res, rej) => {
+      const id = 'n' + (++seq);
+      const timer = setTimeout(() => { if(cbs[id]){ delete cbs[id]; rej(new Error('인터넷 연결을 확인해 주세요')); } }, 25000);
+      cbs[id] = s => {
+        clearTimeout(timer);
+        let d; try{ d = JSON.parse(s); }catch(e){ return rej(new Error('응답 오류')); }
+        d.error ? rej(new Error(d.error)) : res(d);
+      };
+      window.AndroidNet.call(a, JSON.stringify(p || {}), id);
+    })};
+  }
   if(window.google && google.script && google.script.run){
     return { ok:true, kind:'gas', call:(a, p) => new Promise((res, rej) => {
       google.script.run
@@ -1253,7 +1268,7 @@ function poll(){
     online.fail++;
     if(online.fail===4) say(myColor, '<span>📡 연결이 불안정해요… 다시 연결하는 중</span>');
   }).finally(() => {
-    if(online.code===code) online.timer = setTimeout(poll, net.kind==='gas' ? 700 : 500);
+    if(online.code===code) online.timer = setTimeout(poll, net.kind==='http' ? 500 : 700);
   });
 }
 
@@ -1344,7 +1359,7 @@ function openSheet(){
   $('sUndo').classList.toggle('hide', isOn);
   $('sNew').classList.toggle('hide', isOn);
   $('sResign').classList.toggle('hide', !isOn);
-  $('sFull').classList.toggle('hide', !document.fullscreenEnabled);
+  $('sFull').classList.toggle('hide', !document.fullscreenEnabled || !!window.AndroidNet);
   $('sHint').disabled = !canMove();
   $('sUndo').disabled = !hist.length || thinking;
   $('sResign').disabled = over;
@@ -1758,6 +1773,24 @@ function updateMenuRec(){
 }
 $('mRec').onclick = () => openRecords('menu');
 updateMenuRec();
+
+/* 안드로이드 뒤로 가기 버튼: 열린 창을 닫고, 처음 화면이면 앱을 내림 */
+window.__androidBack = function(){
+  const on = id => $(id).classList.contains('show');
+  if(on('promo')) return true;
+  if(on('guide')){ hide('guide'); return true; }
+  if(on('records')){ $('recClose').onclick(); return true; }
+  if(on('pick')){ $('pDone').onclick(); return true; }
+  if(on('sheet')){ hide('sheet'); return true; }
+  if(on('lobby')){ $('lBack').onclick(); return true; }
+  if(on('wait')){ leaveOnline(); return true; }
+  if(on('menu')){
+    if($('levels').classList.contains('show')){ hide('levels'); return true; }
+    return false;
+  }
+  if(on('result')){ $('resHome').onclick(); return true; }
+  openSheet(); return true;
+};
 
 /* 처음 화면 */
 resetLocal(); render();

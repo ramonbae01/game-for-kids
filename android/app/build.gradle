@@ -1,0 +1,62 @@
+plugins {
+    id 'com.android.application'
+}
+
+// 게임 화면(index.html)은 beast-chess 폴더의 것을 그대로 복사해서 앱에 넣어요.
+def webOut = layout.buildDirectory.dir('generated/webassets')
+tasks.register('copyWeb', Copy) {
+    from('../../beast-chess') { include 'index.html' }
+    into webOut
+}
+preBuild.dependsOn 'copyWeb'
+
+android {
+    namespace 'kr.family.beastchess'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'kr.family.beastchess'
+        minSdk 24
+        targetSdk 34
+        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int
+        versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+        // 온라인 대결에 쓰는 Apps Script 주소
+        buildConfigField 'String', 'GAS_URL', '"https://script.google.com/macros/s/AKfycbwZYsD10I_IJh5dQYUS5BCk3VQKHqPp4SZTu-MEwtZ8c9dOeJ8_4Dl2i6qS1LI3xjpBKQ/exec"'
+    }
+
+    buildFeatures { buildConfig true }
+
+    sourceSets {
+        main { assets.srcDirs += webOut }
+    }
+
+    signingConfigs {
+        family {
+            // GitHub 저장소 Secrets에 KEYSTORE_BASE64 등을 넣으면 그 키로, 없으면 저장소의 기본 키로 서명해요.
+            def ks = System.getenv('KEYSTORE_FILE')
+            storeFile ks ? file(ks) : file('family.keystore')
+            storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'beastchess'
+            keyAlias System.getenv('KEY_ALIAS') ?: 'beastchess'
+            keyPassword System.getenv('KEY_PASSWORD') ?: 'beastchess'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.family
+        }
+        debug {
+            signingConfig signingConfigs.family
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

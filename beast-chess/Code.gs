@@ -3,7 +3,14 @@
  * - index (HTML) : 게임 화면
  * - api()        : 온라인 대결용 방 관리 (CacheService에 저장, 최대 6시간 유지)
  */
-function doGet() {
+function doGet(e) {
+  // 안드로이드 앱의 온라인 대결 요청: ?api=동작&p={JSON}
+  if (e && e.parameter && e.parameter.api) {
+    var payload = {};
+    try { payload = JSON.parse(e.parameter.p || '{}'); } catch (err) {}
+    return ContentService.createTextOutput(api(String(e.parameter.api), payload))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('비스트 챌린지 체스')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover')
