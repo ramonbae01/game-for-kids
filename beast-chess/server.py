@@ -9,6 +9,7 @@
 import json
 import os
 import random
+import re
 import socket
 import sys
 import threading
@@ -30,6 +31,15 @@ class ApiError(Exception):
 def clean_name(n):
     n = ''.join(ch for ch in str(n or '') if ch not in '<>&"\'').strip()[:8]
     return n or '챌린저'
+
+
+def clean_skin(s):
+    s = s if isinstance(s, dict) else {}
+    out = {}
+    for k in 'KQRBNP':
+        v = s.get(k)
+        out[k] = v if isinstance(v, str) and re.fullmatch(r'c\d{1,3}', v) else None
+    return out
 
 
 def color_of(r, pid):
@@ -75,7 +85,8 @@ def handle(a, p):
         pid = str(p.get('pid', ''))
 
         if a == 'list':
-            rooms = [{'code': r['code'], 'name': r['players']['w']['name']}
+            rooms = [{'code': r['code'], 'name': r['players']['w']['name'],
+                      'king': (r['players']['w'].get('skin') or {}).get('K')}
                      for r in ROOMS.values()
                      if r['status'] == 'waiting' and now - r['updated'] < LIST_AGE]
             return {'rooms': rooms[::-1]}
@@ -86,7 +97,8 @@ def handle(a, p):
                 if code not in ROOMS:
                     break
             r = {'code': code, 'gid': 1, 'ver': 0, 'status': 'waiting', 'updated': now,
-                 'players': {'w': {'pid': pid, 'name': clean_name(p.get('name'))}, 'b': None},
+                 'players': {'w': {'pid': pid, 'name': clean_name(p.get('name')),
+                                   'skin': clean_skin(p.get('skin'))}, 'b': None},
                  'moves': [], 'result': None, 'rematch': {}}
             bump(r)
             ROOMS[code] = r
@@ -100,7 +112,8 @@ def handle(a, p):
             if not color_of(r, pid):
                 if r['status'] != 'waiting' or r['players']['b']:
                     raise ApiError('이미 게임 중인 방이에요')
-                r['players']['b'] = {'pid': pid, 'name': clean_name(p.get('name'))}
+                r['players']['b'] = {'pid': pid, 'name': clean_name(p.get('name')),
+                                     'skin': clean_skin(p.get('skin'))}
                 r['status'] = 'playing'
                 bump(r)
             touch(r['code'], pid)

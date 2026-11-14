@@ -41,6 +41,14 @@ function cleanName_(n) {
   n = String(n || '').replace(/[<>&"']/g, '').trim().slice(0, 8);
   return n || '챌린저';
 }
+function cleanSkin_(s) {
+  var o = {};
+  ['K', 'Q', 'R', 'B', 'N', 'P'].forEach(function (k) {
+    var v = s && s[k];
+    o[k] = (typeof v === 'string' && /^c\d{1,3}$/.test(v)) ? v : null;
+  });
+  return o;
+}
 function colorOf_(r, pid) {
   if (r.players.w && r.players.w.pid === pid) return 'w';
   if (r.players.b && r.players.b.pid === pid) return 'b';
@@ -80,7 +88,7 @@ function handle_(a, p) {
         if (!s) return;
         var r = JSON.parse(s);
         if (r.status === 'waiting' && Date.now() - r.updated < LIST_AGE_MS_)
-          rooms.push({ code: r.code, name: r.players.w.name });
+          rooms.push({ code: r.code, name: r.players.w.name, king: (r.players.w.skin || {}).K || null });
       });
       return { rooms: rooms.reverse() };
     }
@@ -89,7 +97,7 @@ function handle_(a, p) {
         var code;
         do { code = String(1000 + Math.floor(Math.random() * 9000)); } while (getRoom_(code));
         var r = { code: code, gid: 1, ver: 0, status: 'waiting',
-                  players: { w: { pid: String(p.pid), name: cleanName_(p.name) }, b: null },
+                  players: { w: { pid: String(p.pid), name: cleanName_(p.name), skin: cleanSkin_(p.skin) }, b: null },
                   moves: [], result: null, rematch: {} };
         putRoom_(r);
         var codes = JSON.parse(cache_().get('rooms') || '[]');
@@ -106,7 +114,7 @@ function handle_(a, p) {
         if (!r) throw new Error('그 번호의 방을 찾을 수 없어요');
         if (!colorOf_(r, p.pid)) {
           if (r.status !== 'waiting' || r.players.b) throw new Error('이미 게임 중인 방이에요');
-          r.players.b = { pid: String(p.pid), name: cleanName_(p.name) };
+          r.players.b = { pid: String(p.pid), name: cleanName_(p.name), skin: cleanSkin_(p.skin) };
           r.status = 'playing';
           putRoom_(r);
         }
