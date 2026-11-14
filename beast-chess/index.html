@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>비스트 챌린지 체스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#232a4d;
+  --blue:#2f80ff; --blue-d:#1a5ad6; --blue-l:#9cc8ff;
+  --pink:#ff4f9a; --pink-d:#d42a77; --pink-l:#ffb8d8;
+  --gold:#ffd23f; --gold-d:#e0a800;
+  --light:#fff4dc; --dark:#8fd3b6;
+  --card:#ffffff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.35) 0 40px, transparent 41px),
+    radial-gradient(circle at 88% 30%, rgba(255,255,255,.25) 0 70px, transparent 71px),
+    radial-gradient(circle at 70% 90%, rgba(255,255,255,.25) 0 55px, transparent 56px),
+    linear-gradient(160deg,#5cb8ff 0%,#9b8cff 50%,#ff8cc6 100%);
+  background-attachment:fixed;
+  overflow-x:hidden;
+  user-select:none;-webkit-user-select:none;
+}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none}
+
+/* ---------- 상단 ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  max-width:1060px;margin:0 auto;padding:12px 16px 4px}
+.logo{display:flex;align-items:center;gap:8px;filter:drop-shadow(0 4px 0 rgba(35,42,77,.35))}
+.logo-b{font-family:'Black Han Sans',sans-serif;font-size:clamp(22px,5vw,34px);letter-spacing:1px;
+  background:var(--blue);color:#fff;padding:2px 12px 0;border-radius:12px;border:3px solid var(--ink);transform:rotate(-4deg)}
+.logo-t{font-family:'Black Han Sans',sans-serif;font-size:clamp(20px,4.6vw,30px);color:#fff;
+  -webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.logo-t{white-space:nowrap}
+.top-btns{display:flex;gap:8px}
+@media (max-width:440px){.logo-t{font-size:18px}.logo-b{font-size:20px;padding:2px 8px 0}.icon-btn{width:40px;height:40px;font-size:19px}.top-btns{gap:6px}}
+.icon-btn{width:46px;height:46px;border-radius:14px;background:#fff;font-size:22px;
+  border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);transition:transform .1s}
+.icon-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+
+/* ---------- 레이아웃 ---------- */
+.layout{max-width:1060px;margin:0 auto;padding:6px 16px 24px;display:grid;
+  grid-template-columns:minmax(0,auto) minmax(240px,320px);gap:18px;justify-content:center;align-items:start}
+.board-area{display:flex;flex-direction:column;gap:10px;align-items:center;min-width:0}
+.side{display:flex;flex-direction:column;gap:14px;padding-top:58px}
+@media (max-width:860px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .side{padding-top:0}
+}
+
+/* ---------- 플레이어 바 ---------- */
+.player{width:var(--bw);display:flex;align-items:center;gap:10px;background:#fff;border:3px solid var(--ink);
+  border-radius:18px;padding:6px 12px 6px 6px;box-shadow:0 4px 0 var(--ink);position:relative;transition:transform .2s, box-shadow .2s}
+.player .av{width:48px;height:48px;flex:0 0 48px;border-radius:14px;display:grid;place-items:center}
+.player.w .av{background:var(--blue-l)} .player.b .av{background:var(--pink-l)}
+.player .av svg{width:44px;height:44px}
+.player .info{flex:1;min-width:0}
+.player .nm{font-size:18px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player .caps{display:flex;flex-wrap:wrap;gap:0;min-height:22px;margin-top:2px}
+.player .caps svg{width:22px;height:22px;margin-right:-5px}
+.player .money{font-family:'Black Han Sans',sans-serif;font-size:20px;color:#14a052;background:#e6ffef;
+  border:2px solid #14a052;border-radius:12px;padding:2px 10px;white-space:nowrap}
+.player .turn-badge{position:absolute;top:-14px;right:14px;background:var(--gold);border:3px solid var(--ink);
+  border-radius:999px;padding:0 10px;font-size:15px;display:none;animation:bob 1s ease-in-out infinite}
+.player.active{transform:scale(1.02)}
+.player.active.w{box-shadow:0 4px 0 var(--ink),0 0 0 5px rgba(47,128,255,.55)}
+.player.active.b{box-shadow:0 4px 0 var(--ink),0 0 0 5px rgba(255,79,154,.55)}
+.player.active .turn-badge{display:block}
+
+/* ---------- 보드 ---------- */
+:root{--bw:min(calc(100vw - 32px), 600px, calc(100vh - 230px))}
+@media (max-width:860px){:root{--bw:min(calc(100vw - 32px), 600px)}}
+@media (min-width:861px){:root{--bw:max(380px, min(600px, calc(100vh - 230px)))}}
+.board-wrap{padding:10px;border-radius:22px;background:#ffb648;border:4px solid var(--ink);
+  box-shadow:0 7px 0 var(--ink), inset 0 0 0 4px #ffd88a}
+.board{width:calc(var(--bw) - 28px);aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);
+  grid-template-rows:repeat(8,1fr);border-radius:12px;overflow:hidden;border:3px solid var(--ink)}
+.sq{position:relative;cursor:pointer}
+.sq.l{background:var(--light)} .sq.d{background:var(--dark)}
+.sq.last.l{background:#ffe98a} .sq.last.d{background:#d9d65b}
+.sq.sel{background:#ffd23f !important;box-shadow:inset 0 0 0 4px #ff9f1a}
+.sq.hint{animation:hintPulse .9s ease-in-out infinite}
+@keyframes hintPulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,159,26,.0)}50%{box-shadow:inset 0 0 0 6px rgba(255,159,26,.95)}}
+.sq.check::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(255,40,60,.85) 0%,rgba(255,40,60,.35) 55%,transparent 75%);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
+.sq.mv::after{content:"";position:absolute;left:50%;top:50%;width:30%;height:30%;transform:translate(-50%,-50%);
+  border-radius:50%;background:rgba(35,42,77,.28);z-index:3;pointer-events:none;animation:dotIn .2s ease-out}
+.sq.cap::after{content:"";position:absolute;inset:6%;border-radius:50%;border:5px solid rgba(255,60,80,.8);z-index:3;pointer-events:none;animation:dotIn .2s ease-out}
+@keyframes dotIn{from{transform:translate(-50%,-50%) scale(0)}}
+.sq.cap::after{animation:none}
+.coord{position:absolute;font-size:clamp(8px,1.5vw,12px);opacity:.55;pointer-events:none;z-index:1}
+.coord.f{right:3px;bottom:1px} .coord.r{left:3px;top:1px}
+.piece{position:absolute;inset:0;padding:4%;z-index:2;pointer-events:none;transition:none}
+.piece svg{width:100%;height:100%;display:block;overflow:visible}
+.sq.mine:hover .piece{transform:translateY(-4%) scale(1.06);transition:transform .12s}
+.sq.sel .piece{animation:hop .6s ease-in-out infinite}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-9%)}}
+.piece.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+.float-money{position:absolute;z-index:20;pointer-events:none;font-family:'Black Han Sans',sans-serif;
+  color:#14a052;font-size:clamp(16px,3.4vw,26px);-webkit-text-stroke:1.5px #fff;paint-order:stroke fill;
+  animation:floatUp 1.2s ease-out forwards;white-space:nowrap;left:50%;top:10%;transform:translateX(-50%)}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}20%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-60px) scale(1)}}
+
+/* ---------- 말풍선 & 버튼 ---------- */
+.bubble-box{display:flex;gap:10px;align-items:flex-end}
+.bubble-avatar{width:76px;height:76px;flex:0 0 76px;border-radius:20px;background:#fff;border:3px solid var(--ink);
+  box-shadow:0 4px 0 var(--ink);display:grid;place-items:center}
+.bubble-avatar svg{width:66px;height:66px}
+.bubble{flex:1;background:#fff;border:3px solid var(--ink);border-radius:20px 20px 20px 4px;padding:12px 14px;
+  font-size:19px;line-height:1.35;box-shadow:0 4px 0 var(--ink);min-height:76px;display:flex;align-items:center}
+.bubble.say{animation:say .3s ease-out}
+@keyframes say{0%{transform:scale(.9)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions .btn:last-child{grid-column:1 / -1}
+.btn{font-size:21px;padding:12px 10px;border-radius:16px;border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);
+  transition:transform .1s, box-shadow .1s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-yellow{background:var(--gold)} .btn-white{background:#fff} .btn-green{background:#5fe08f}
+.btn-blue{background:var(--blue);color:#fff} .btn-pink{background:var(--pink);color:#fff}
+.tips{background:rgba(255,255,255,.85);border:3px solid var(--ink);border-radius:18px;padding:10px 14px;font-size:16px;line-height:1.5}
+.tips b{color:var(--pink-d);font-weight:normal}
+@media (max-width:860px){
+  .side{width:var(--bw);margin:0 auto}
+  .bubble{font-size:17px}
+}
+
+/* ---------- 오버레이 ---------- */
+.overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;
+  background:rgba(35,42,77,.55);backdrop-filter:blur(4px)}
+.overlay.show{display:flex}
+.card{background:#fff;border:4px solid var(--ink);border-radius:26px;box-shadow:0 8px 0 var(--ink);padding:22px;
+  max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;text-align:center;animation:cardIn .35s cubic-bezier(.2,1.4,.5,1)}
+@keyframes cardIn{from{transform:scale(.7);opacity:0}}
+.card h2{font-family:'Black Han Sans',sans-serif;font-size:30px;margin:4px 0 6px;font-weight:normal}
+.card p{font-size:18px;margin:6px 0 14px}
+.menu-hero{display:flex;justify-content:center;gap:4px;margin-bottom:4px}
+.menu-hero svg{width:70px;height:70px}
+.menu-hero svg:nth-child(2){width:96px;height:96px;margin-top:-18px}
+.menu-title{font-family:'Black Han Sans',sans-serif;font-size:clamp(30px,8vw,44px);line-height:1.05;margin:6px 0}
+.menu-title .bb{color:var(--blue)} .menu-title .pp{color:var(--pink)}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.mode{border:3px solid var(--ink);border-radius:20px;padding:14px 8px;box-shadow:0 5px 0 var(--ink);font-size:20px;line-height:1.3}
+.mode .em{font-size:38px;display:block}
+.mode small{display:block;font-size:14px;opacity:.8}
+.mode.pvp{background:#ffe3f0} .mode.ai{background:#dcecff}
+.mode:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.levels{display:none;margin-top:14px}
+.levels.show{display:block;animation:cardIn .3s}
+.level-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.level-row .btn{font-size:19px;padding:12px 4px}
+.level-row .btn small{display:block;font-size:13px}
+.promo-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.promo-row button{background:#fff8e6;border:3px solid var(--ink);border-radius:18px;padding:6px 4px;box-shadow:0 4px 0 var(--ink);font-size:15px}
+.promo-row svg{width:100%;height:auto;aspect-ratio:1}
+.guide-list{display:grid;gap:10px;text-align:left}
+.guide-item{display:flex;gap:12px;align-items:center;background:#f5f8ff;border:3px solid var(--ink);border-radius:18px;padding:8px 12px}
+.guide-item svg{width:62px;height:62px;flex:0 0 62px}
+.guide-item .gn{font-size:20px} .guide-item .gn span{font-size:14px;background:var(--gold);border-radius:8px;padding:0 6px;margin-left:4px}
+.guide-item .gd{font-size:15px;line-height:1.4;opacity:.9}
+.guide-item .gp{font-size:14px;color:#14a052}
+.result-hero svg{width:150px;height:150px;animation:hop .8s ease-in-out infinite}
+.prize{font-family:'Black Han Sans',sans-serif;font-size:clamp(30px,9vw,46px);color:#14a052;margin:4px 0;
+  -webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.confetti{position:fixed;top:-20px;width:12px;height:18px;z-index:60;pointer-events:none;animation:fall linear forwards;border-radius:3px}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.thinking{display:inline-flex;gap:4px;margin-left:6px}
+.thinking i{width:8px;height:8px;border-radius:50%;background:var(--pink);animation:bob .6s infinite}
+.thinking i:nth-child(2){animation-delay:.15s}.thinking i:nth-child(3){animation-delay:.3s}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo"><span class="logo-b">BEAST</span><span class="logo-t">챌린지 체스</span></div>
+  <div class="top-btns">
+    <button class="icon-btn" id="btnGuide" title="캐릭터 도감" aria-label="캐릭터 도감">📖</button>
+    <button class="icon-btn" id="btnSound" title="소리 켜기/끄기" aria-label="소리">🔊</button>
+    <button class="icon-btn" id="btnHome" title="처음 화면" aria-label="처음 화면">🏠</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="board-area">
+    <div class="player b" id="pTop"></div>
+    <div class="board-wrap"><div id="board" class="board"></div></div>
+    <div class="player w" id="pBot"></div>
+  </section>
+  <aside class="side">
+    <div class="bubble-box">
+      <div class="bubble-avatar" id="bubAv"></div>
+      <div class="bubble" id="bubble">챌린지 시작!</div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-yellow" id="btnHint">💡 힌트</button>
+      <button class="btn btn-white" id="btnUndo">↩️ 되돌리기</button>
+      <button class="btn btn-green" id="btnNew">🔄 새 게임</button>
+    </div>
+    <div class="tips">
+      👆 <b>내 캐릭터</b>를 누르면 갈 수 있는 곳에 <b>점</b>이 생겨요.<br>
+      🔴 <b>빨간 동그라미</b>는 상대를 잡을 수 있는 곳!<br>
+      💰 상대를 잡으면 <b>상금</b>을 받아요.<br>
+      👑 상대 <b>보스 비스트</b>를 꼼짝 못하게 하면 우승!
+    </div>
+  </aside>
+</main>
+
+<!-- 시작 메뉴 -->
+<div class="overlay show" id="menu">
+  <div class="card">
+    <div class="menu-hero" id="menuHero"></div>
+    <div class="menu-title"><span class="bb">BEAST</span> <span class="pp">챌린지</span><br>체스</div>
+    <p>보스 비스트를 지켜라! 마지막까지 살아남는 팀이 상금을 가져가요 💰</p>
+    <div class="mode-grid">
+      <button class="mode pvp" id="mPvp"><span class="em">👫</span>친구랑 하기<small>한 화면에서 둘이 번갈아</small></button>
+      <button class="mode ai" id="mAi"><span class="em">🤖</span>컴퓨터랑 하기<small>나는 파란 팀!</small></button>
+    </div>
+    <div class="levels" id="levels">
+      <p style="margin:6px 0 10px">컴퓨터 실력을 골라요!</p>
+      <div class="level-row">
+        <button class="btn btn-green" data-lv="0">🐣 쉬움<small>처음 해봐요</small></button>
+        <button class="btn btn-yellow" data-lv="1">😎 보통<small>조금 해봤어요</small></button>
+        <button class="btn btn-pink" data-lv="2">🔥 어려움<small>자신 있어요</small></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 승진 -->
+<div class="overlay" id="promo">
+  <div class="card">
+    <h2>🎉 챌린저 변신!</h2>
+    <p>끝까지 왔어요! 누구로 변신할까요?</p>
+    <div class="promo-row" id="promoRow"></div>
+  </div>
+</div>
+
+<!-- 도감 -->
+<div class="overlay" id="guide">
+  <div class="card">
+    <h2>📖 캐릭터 도감</h2>
+    <p>각 캐릭터가 어떻게 움직이는지 알아봐요!</p>
+    <div class="guide-list" id="guideList"></div>
+    <button class="btn btn-yellow" id="guideClose" style="margin-top:14px;width:100%">알겠어요! 👍</button>
+  </div>
+</div>
+
+<!-- 결과 -->
+<div class="overlay" id="result">
+  <div class="card">
+    <div class="result-hero" id="resHero"></div>
+    <h2 id="resTitle"></h2>
+    <div class="prize" id="resPrize"></div>
+    <p id="resMsg"></p>
+    <div class="mode-grid">
+      <button class="btn btn-green" id="resAgain">🔄 한 판 더!</button>
+      <button class="btn btn-white" id="resHome">🏠 처음으로</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   캐릭터 (모두 직접 그린 오리지널 카툰 SVG)
+   ========================================================= */
+const O = '#232a4d';
+const TEAM = {
+  w:{ name:'파란 팀', main:'#2f80ff', dark:'#1a5ad6', light:'#9cc8ff' },
+  b:{ name:'핑크 팀', main:'#ff4f9a', dark:'#d42a77', light:'#ffb8d8' }
+};
+const INFO = {
+  K:{ name:'보스 비스트', chess:'킹',   move:'모든 방향으로 딱 한 칸! 꼼짝 못하게 잡히면 게임 끝이니까 꼭 지켜야 해요.', say:'나는 보스 비스트! 어느 방향이든 한 칸씩 갈 수 있어.' },
+  Q:{ name:'슈퍼스타',   chess:'퀸',   move:'가로·세로·대각선 어디든 쭉~ 원하는 만큼! 가장 강한 캐릭터예요.', say:'난 최강 슈퍼스타! 어느 방향이든 쭉~ 갈 수 있어!' },
+  R:{ name:'금고 지킴이', chess:'룩',  move:'가로나 세로로 쭉~ 원하는 만큼 갈 수 있어요.', say:'금고 지킴이 출동! 가로·세로로 쭉 달려간다!' },
+  B:{ name:'마법사',     chess:'비숍', move:'대각선으로만 쭉~ 원하는 만큼 갈 수 있어요.', say:'수리수리 마수리~ 나는 대각선으로만 날아가!' },
+  N:{ name:'점프 호스',  chess:'나이트', move:'L자 모양(두 칸 가고 옆으로 한 칸)으로 점프! 다른 캐릭터를 뛰어넘을 수 있어요.', say:'히히힝! L자로 점프! 친구들도 뛰어넘을 수 있어!' },
+  P:{ name:'챌린저',     chess:'폰',   move:'앞으로 한 칸 (맨 처음엔 두 칸도 OK). 잡을 때는 대각선 앞으로! 끝까지 가면 변신해요.', say:'챌린저 출발! 앞으로 한 칸씩, 잡을 땐 대각선으로!' }
+};
+const PRIZE = { P:100, N:300, B:300, R:500, Q:900, K:0 };
+
+function face(cx, cy){
+  return `<ellipse cx="${cx-7}" cy="${cy}" rx="2.9" ry="3.7" fill="${O}"/>
+  <ellipse cx="${cx+7}" cy="${cy}" rx="2.9" ry="3.7" fill="${O}"/>
+  <circle cx="${cx-6}" cy="${cy-1.4}" r="1.1" fill="#fff"/><circle cx="${cx+8}" cy="${cy-1.4}" r="1.1" fill="#fff"/>
+  <ellipse cx="${cx-12.5}" cy="${cy+6}" rx="3.6" ry="2.3" fill="#ff8fa8" opacity=".75"/>
+  <ellipse cx="${cx+12.5}" cy="${cy+6}" rx="3.6" ry="2.3" fill="#ff8fa8" opacity=".75"/>
+  <path d="M${cx-6} ${cy+6} Q${cx} ${cy+12.5} ${cx+6} ${cy+6}" fill="none" stroke="${O}" stroke-width="2.6" stroke-linecap="round"/>`;
+}
+function body(t, x1, x2, top){
+  return `<path d="M${x1} 96 Q${x1} ${top+3} 50 ${top} Q${x2} ${top+3} ${x2} 96 Z" fill="${t.main}" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M45 ${top+3} L44 ${top+13} M55 ${top+3} L56 ${top+13}" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".9"/>`;
+}
+const SKIN = '#ffd9b8', HAIR = '#6b4226';
+const head = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${SKIN}" stroke="${O}" stroke-width="3"/>`;
+const shadow = `<ellipse cx="50" cy="96" rx="30" ry="4" fill="rgba(0,0,0,.18)"/>`;
+
+function pieceSVG(type, color){
+  const t = TEAM[color];
+  let s = '';
+  switch(type){
+    case 'P':
+      s = shadow + body(t, 28, 72, 76) + head(50, 60, 17) +
+        `<path d="M33 57 Q33 40 50 40 Q67 40 67 57 Z" fill="${t.main}" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+         <path d="M50 55 L80 55 Q82 60 76 61 L50 60 Z" fill="${t.dark}" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+         <circle cx="50" cy="40" r="3" fill="${t.dark}" stroke="${O}" stroke-width="2"/>` +
+        face(48, 64);
+      break;
+    case 'K':
+      s = shadow + body(t, 18, 82, 70) +
+        `<text x="50" y="93" text-anchor="middle" font-size="17" font-family="Arial Black,Arial" font-weight="900" fill="${'#ffd23f'}" stroke="${O}" stroke-width="1.2">$</text>` +
+        head(50, 50, 21) +
+        `<path d="M29 48 Q30 28 50 28 Q70 28 71 48 Q66 38 56 38 Q52 42 46 38 Q36 38 29 48 Z" fill="${HAIR}" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>
+         <path d="M30 33 L32 10 L41 22 L50 5 L59 22 L68 10 L70 33 Q50 27 30 33 Z" fill="#ffd23f" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+         <circle cx="50" cy="24" r="3.6" fill="#ff4f6a" stroke="${O}" stroke-width="1.6"/>
+         <circle cx="38.5" cy="27" r="2.4" fill="${t.light}" stroke="${O}" stroke-width="1.4"/>
+         <circle cx="61.5" cy="27" r="2.4" fill="${t.light}" stroke="${O}" stroke-width="1.4"/>
+         <circle cx="32" cy="10" r="2.4" fill="#fff6c2" stroke="${O}" stroke-width="1.4"/>
+         <circle cx="50" cy="5" r="2.6" fill="#fff6c2" stroke="${O}" stroke-width="1.4"/>
+         <circle cx="68" cy="10" r="2.4" fill="#fff6c2" stroke="${O}" stroke-width="1.4"/>` +
+        face(50, 53);
+      break;
+    case 'Q':
+      s = shadow +
+        `<path d="M27 52 Q24 82 34 86 L66 86 Q76 82 73 52 Q72 27 50 27 Q28 27 27 52 Z" fill="${t.dark}" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>` +
+        body(t, 22, 78, 72) + head(50, 52, 20) +
+        `<path d="M30 50 Q31 31 50 31 Q69 31 70 50 Q62 40 52 41 Q42 39 30 50 Z" fill="${t.dark}" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>
+         <path d="M34 35 L39 20 L45 29 L50 14 L55 29 L61 20 L66 35 Q50 29 34 35 Z" fill="#fff3a8" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+         <circle cx="50" cy="28" r="3.4" fill="${t.main}" stroke="${O}" stroke-width="1.6"/>
+         <path d="M80 22 L82 28 L88 30 L82 32 L80 38 L78 32 L72 30 L78 28 Z" fill="#ffd23f" stroke="${O}" stroke-width="1.6" stroke-linejoin="round"/>
+         <path d="M18 60 L19.5 64 L23.5 65.5 L19.5 67 L18 71 L16.5 67 L12.5 65.5 L16.5 64 Z" fill="#ffd23f" stroke="${O}" stroke-width="1.4" stroke-linejoin="round"/>` +
+        face(50, 55);
+      break;
+    case 'R':
+      s = shadow + body(t, 14, 86, 69) +
+        `<circle cx="50" cy="86" r="7.5" fill="#ffd23f" stroke="${O}" stroke-width="2.4"/>
+         <text x="50" y="90.5" text-anchor="middle" font-size="11" font-family="Arial Black,Arial" font-weight="900" fill="${O}">$</text>` +
+        head(50, 54, 20) +
+        `<path d="M28 44 L28 12 L37 12 L37 19 L45 19 L45 12 L55 12 L55 19 L63 19 L63 12 L72 12 L72 44 Z" fill="#c3cbe3" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+         <path d="M28 27 L72 27 M40 27 L40 35 M60 27 L60 35 M50 19 L50 27" stroke="${O}" stroke-width="1.6" opacity=".45"/>
+         <rect x="26" y="35" width="48" height="10" rx="3" fill="${t.main}" stroke="${O}" stroke-width="3"/>` +
+        face(50, 57) +
+        `<path d="M38 50 L45 52 M62 50 L55 52" stroke="${O}" stroke-width="2.4" stroke-linecap="round"/>`;
+      break;
+    case 'B':
+      s = shadow + body(t, 20, 80, 71) +
+        `<path d="M42 74 L50 96 L58 74" fill="${t.light}" stroke="${O}" stroke-width="2.2" stroke-linejoin="round"/>` +
+        head(50, 55, 19) +
+        `<path d="M30 40 Q44 30 50 3 Q58 28 72 40 Z" fill="${t.main}" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+         <path d="M45 22 L46.5 26 L50.5 27 L46.5 28.5 L45 32.5 L43.5 28.5 L39.5 27 L43.5 26 Z" fill="#ffd23f"/>
+         <circle cx="57" cy="33" r="2.2" fill="#ffd23f"/><circle cx="53" cy="15" r="1.6" fill="#ffd23f"/>
+         <ellipse cx="50" cy="41" rx="27" ry="5.5" fill="${t.dark}" stroke="${O}" stroke-width="3"/>
+         <circle cx="50" cy="4" r="4" fill="#ffd23f" stroke="${O}" stroke-width="2"/>` +
+        face(50, 57) +
+        `<path d="M79 52 L88 30" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round"/>
+         <path d="M88 22 L90 27.5 L95.5 29 L90 30.5 L88 36 L86 30.5 L80.5 29 L86 27.5 Z" fill="#ffd23f" stroke="${O}" stroke-width="1.6" stroke-linejoin="round"/>`;
+      break;
+    case 'N':
+      s = shadow + body(t, 20, 80, 72) +
+        `<path d="M58 76 Q74 62 72 40 Q70 20 52 16 L47 4 L41 18 Q30 22 24 36 L14 52 Q10 62 20 66 Q30 69 37 61 L40 59 Q44 68 38 78 Z" fill="${t.main}" stroke="${O}" stroke-width="3" stroke-linejoin="round"/>
+         <path d="M52 15 Q70 16 77 33 Q82 50 74 68 L66 64 Q73 48 68 34 Q63 23 50 21 Z" fill="${t.dark}" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>
+         <path d="M14 53 Q10 62 20 66 Q29 68 34 62 Q26 52 18 50 Z" fill="${t.light}" stroke="${O}" stroke-width="2.5" stroke-linejoin="round"/>
+         <ellipse cx="19" cy="58" rx="2" ry="1.4" fill="${O}"/>
+         <ellipse cx="40" cy="36" rx="3.6" ry="4.6" fill="#fff" stroke="${O}" stroke-width="2"/>
+         <circle cx="39" cy="36.5" r="2.4" fill="${O}"/><circle cx="38.2" cy="35.3" r=".9" fill="#fff"/>
+         <ellipse cx="32" cy="46" rx="3.4" ry="2.1" fill="#ff8fa8" opacity=".8"/>
+         <path d="M22 64 Q27 66 31 63" fill="none" stroke="${O}" stroke-width="2.2" stroke-linecap="round"/>`;
+      break;
+  }
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+}
+
+/* =========================================================
+   체스 엔진 (정식 규칙: 캐슬링, 앙파상, 승진, 체크메이트, 스테일메이트)
+   ========================================================= */
+const KN = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+const KG = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+const RD = [[-1,0],[1,0],[0,-1],[0,1]];
+const BD = [[-1,-1],[-1,1],[1,-1],[1,1]];
+const inB = (r,c) => r>=0 && r<8 && c>=0 && c<8;
+const opp = c => c==='w' ? 'b' : 'w';
+
+function newState(){
+  const b = new Array(64).fill(null);
+  const back = ['R','N','B','Q','K','B','N','R'];
+  for(let c=0;c<8;c++){
+    b[c] = {t:back[c], c:'b'}; b[8+c] = {t:'P', c:'b'};
+    b[48+c] = {t:'P', c:'w'}; b[56+c] = {t:back[c], c:'w'};
+  }
+  return { board:b, turn:'w', castle:{wK:true,wQ:true,bK:true,bQ:true}, ep:-1 };
+}
+
+function attacked(b, sq, by){
+  const r = sq>>3, c = sq&7;
+  const pr = by==='w' ? r+1 : r-1;
+  for(const dc of [-1,1]){
+    const cc = c+dc;
+    if(inB(pr,cc)){ const p=b[pr*8+cc]; if(p && p.c===by && p.t==='P') return true; }
+  }
+  for(const [dr,dc] of KN){ const rr=r+dr, cc=c+dc; if(inB(rr,cc)){ const p=b[rr*8+cc]; if(p && p.c===by && p.t==='N') return true; } }
+  for(const [dr,dc] of KG){ const rr=r+dr, cc=c+dc; if(inB(rr,cc)){ const p=b[rr*8+cc]; if(p && p.c===by && p.t==='K') return true; } }
+  for(const [dr,dc] of RD){
+    let rr=r+dr, cc=c+dc;
+    while(inB(rr,cc)){ const p=b[rr*8+cc]; if(p){ if(p.c===by && (p.t==='R'||p.t==='Q')) return true; break; } rr+=dr; cc+=dc; }
+  }
+  for(const [dr,dc] of BD){
+    let rr=r+dr, cc=c+dc;
+    while(inB(rr,cc)){ const p=b[rr*8+cc]; if(p){ if(p.c===by && (p.t==='B'||p.t==='Q')) return true; break; } rr+=dr; cc+=dc; }
+  }
+  return false;
+}
+
+function pseudoMoves(s, from){
+  const b = s.board, p = b[from], out = [];
+  if(!p) return out;
+  const r = from>>3, c = from&7;
+  const add = (to, extra) => out.push(Object.assign({from, to}, extra||{}));
+  if(p.t==='P'){
+    const dir = p.c==='w' ? -1 : 1, start = p.c==='w' ? 6 : 1, last = p.c==='w' ? 0 : 7;
+    const r1 = r+dir;
+    if(inB(r1,c) && !b[r1*8+c]){
+      add(r1*8+c, r1===last ? {promo:'Q'} : null);
+      const r2 = r+2*dir;
+      if(r===start && !b[r2*8+c]) add(r2*8+c);
+    }
+    for(const dc of [-1,1]){
+      const cc = c+dc; if(!inB(r1,cc)) continue;
+      const to = r1*8+cc, q = b[to];
+      if(q && q.c!==p.c) add(to, r1===last ? {promo:'Q'} : null);
+      else if(to===s.ep) add(to, {ep:true});
+    }
+  } else if(p.t==='N' || p.t==='K'){
+    for(const [dr,dc] of (p.t==='N'?KN:KG)){
+      const rr=r+dr, cc=c+dc; if(!inB(rr,cc)) continue;
+      const q=b[rr*8+cc]; if(!q || q.c!==p.c) add(rr*8+cc);
+    }
+    if(p.t==='K'){
+      const e = opp(p.c), home = p.c==='w' ? 60 : 4, cr = s.castle;
+      if(from===home && !attacked(b, home, e)){
+        const kOk = p.c==='w' ? cr.wK : cr.bK, qOk = p.c==='w' ? cr.wQ : cr.bQ;
+        const rk = b[home+3], rq = b[home-4];
+        if(kOk && rk && rk.t==='R' && rk.c===p.c && !b[home+1] && !b[home+2] &&
+           !attacked(b, home+1, e) && !attacked(b, home+2, e)) add(home+2, {castle:'K'});
+        if(qOk && rq && rq.t==='R' && rq.c===p.c && !b[home-1] && !b[home-2] && !b[home-3] &&
+           !attacked(b, home-1, e) && !attacked(b, home-2, e)) add(home-2, {castle:'Q'});
+      }
+    }
+  } else {
+    const dirs = p.t==='R' ? RD : p.t==='B' ? BD : RD.concat(BD);
+    for(const [dr,dc] of dirs){
+      let rr=r+dr, cc=c+dc;
+      while(inB(rr,cc)){
+        const q=b[rr*8+cc];
+        if(!q) add(rr*8+cc);
+        else { if(q.c!==p.c) add(rr*8+cc); break; }
+        rr+=dr; cc+=dc;
+      }
+    }
+  }
+  return out;
+}
+
+function makeMove(s, m){
+  const b = s.board.slice(), p = b[m.from];
+  let captured = b[m.to];
+  b[m.to] = p; b[m.from] = null;
+  if(m.ep){ const cs = m.to + (p.c==='w' ? 8 : -8); captured = b[cs]; b[cs] = null; }
+  if(m.promo) b[m.to] = {t:m.promo, c:p.c};
+  if(m.castle==='K'){ b[m.from+1] = b[m.from+3]; b[m.from+3] = null; }
+  if(m.castle==='Q'){ b[m.from-1] = b[m.from-4]; b[m.from-4] = null; }
+  const cr = Object.assign({}, s.castle);
+  if(p.t==='K'){ if(p.c==='w'){cr.wK=cr.wQ=false;} else {cr.bK=cr.bQ=false;} }
+  for(const sq of [m.from, m.to]){
+    if(sq===63) cr.wK=false; if(sq===56) cr.wQ=false;
+    if(sq===7) cr.bK=false;  if(sq===0) cr.bQ=false;
+  }
+  const ep = (p.t==='P' && Math.abs(m.to-m.from)===16) ? (m.from+m.to)/2 : -1;
+  return { board:b, turn:opp(s.turn), castle:cr, ep, captured };
+}
+
+const kingSq = (b, color) => b.findIndex(p => p && p.t==='K' && p.c===color);
+function inCheck(s){ return attacked(s.board, kingSq(s.board, s.turn), opp(s.turn)); }
+
+function legalMoves(s, onlyFrom){
+  const out = [];
+  for(let i=0;i<64;i++){
+    const p = s.board[i];
+    if(!p || p.c!==s.turn) continue;
+    if(onlyFrom!==undefined && i!==onlyFrom) continue;
+    for(const m of pseudoMoves(s, i)){
+      const ns = makeMove(s, m);
+      if(!attacked(ns.board, kingSq(ns.board, s.turn), ns.turn)) out.push(m);
+    }
+  }
+  return out;
+}
+
+function insufficient(b){
+  const ps = b.filter(Boolean).filter(p => p.t!=='K');
+  if(ps.length===0) return true;
+  if(ps.length===1 && (ps[0].t==='N' || ps[0].t==='B')) return true;
+  return false;
+}
+
+/* ---------- 컴퓨터 ---------- */
+const VAL = { P:100, N:310, B:320, R:500, Q:900, K:0 };
+function evaluate(b){
+  let s = 0;
+  for(let i=0;i<64;i++){
+    const p = b[i]; if(!p) continue;
+    const r = i>>3, c = i&7;
+    let v = VAL[p.t];
+    const cen = (3.5-Math.abs(r-3.5)) + (3.5-Math.abs(c-3.5));
+    if(p.t==='N' || p.t==='B') v += cen*6;
+    else if(p.t==='P') v += cen*2 + (p.c==='w' ? (6-r) : (r-1))*7;
+    else if(p.t==='Q') v += cen*2;
+    s += p.c==='w' ? v : -v;
+  }
+  return s;
+}
+function orderMoves(s, moves){
+  return moves.map(m => ({m, k:(s.board[m.to] ? VAL[s.board[m.to].t]*10 - VAL[s.board[m.from].t] : 0) + (m.promo?800:0)}))
+              .sort((a,b) => b.k-a.k).map(x => x.m);
+}
+function negamax(s, depth, alpha, beta, ply){
+  if(depth===0) return (s.turn==='w'?1:-1) * evaluate(s.board);
+  const moves = legalMoves(s);
+  if(!moves.length) return inCheck(s) ? -100000 + ply : 0;
+  let best = -Infinity;
+  for(const m of orderMoves(s, moves)){
+    const v = -negamax(makeMove(s, m), depth-1, -beta, -alpha, ply+1);
+    if(v > best) best = v;
+    if(v > alpha) alpha = v;
+    if(alpha >= beta) break;
+  }
+  return best;
+}
+function bestMove(s, depth, noise){
+  const moves = orderMoves(s, legalMoves(s));
+  let best = null, bestV = -Infinity;
+  for(const m of moves){
+    const v = -negamax(makeMove(s, m), depth-1, -Infinity, Infinity, 1) + (Math.random()*2-1)*noise;
+    if(v > bestV){ bestV = v; best = m; }
+  }
+  return best;
+}
+function aiPick(s, level){
+  if(level===0){
+    if(Math.random() < 0.45){ const ms = legalMoves(s); return ms[Math.floor(Math.random()*ms.length)]; }
+    return bestMove(s, 1, 60);
+  }
+  if(level===1) return bestMove(s, 2, 25);
+  return bestMove(s, 3, 6);
+}
+
+/* =========================================================
+   소리 (Web Audio로 만든 효과음)
+   ========================================================= */
+let actx = null, soundOn = true;
+function tone(freq, dur, type, delay, vol){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime + (delay||0);
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'triangle'; o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(vol||0.18, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0+dur+0.02);
+  }catch(e){}
+}
+const SFX = {
+  pick(){ tone(660, .07, 'sine', 0, .12); },
+  move(){ tone(440, .08, 'triangle'); tone(620, .08, 'triangle', .06); },
+  coin(){ tone(988, .09, 'square', 0, .1); tone(1319, .25, 'square', .08, .1); },
+  check(){ tone(330, .15, 'sawtooth', 0, .12); tone(262, .25, 'sawtooth', .14, .12); },
+  win(){ [523,659,784,1047,784,1047].forEach((f,i)=>tone(f, .22, 'triangle', i*.13, .2)); },
+  oops(){ tone(200, .12, 'sine', 0, .1); }
+};
+
+/* =========================================================
+   게임 진행 & 화면
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const boardEl = $('board');
+let S, hist, mode = 'ai', level = 0, selected = -1, selMoves = [], lastMove = null,
+    hintMove = null, over = false, money, caps, thinking = false, anim = null, pendingPromo = null, floatMsg = null;
+
+try{ soundOn = localStorage.getItem('bc_sound') !== '0'; }catch(e){}
+$('btnSound').textContent = soundOn ? '🔊' : '🔇';
+
+const sqs = [];
+for(let i=0;i<64;i++){
+  const d = document.createElement('div');
+  const r = i>>3, c = i&7;
+  d.className = 'sq ' + ((r+c)%2 ? 'd' : 'l');
+  if(r===7){ const f = document.createElement('span'); f.className='coord f'; f.textContent='abcdefgh'[c]; d.appendChild(f); }
+  if(c===0){ const f = document.createElement('span'); f.className='coord r'; f.textContent=8-r; d.appendChild(f); }
+  const pc = document.createElement('div'); pc.className = 'piece'; d.appendChild(pc);
+  d.addEventListener('click', () => onSquare(i));
+  boardEl.appendChild(d); sqs.push(d);
+}
+
+function teamLabel(c){
+  if(mode==='ai') return c==='w' ? '나 · 파란 팀' : '컴퓨터 · 핑크 팀';
+  return TEAM[c].name;
+}
+
+function startGame(m, lv){
+  mode = m; if(lv!==undefined) level = lv;
+  S = newState(); hist = []; selected = -1; selMoves = []; lastMove = null; hintMove = null;
+  over = false; thinking = false; anim = null;
+  money = {w:0, b:0}; caps = {w:[], b:[]};
+  $('menu').classList.remove('show'); $('result').classList.remove('show');
+  render();
+  say('w', mode==='ai' ? '챌린지 시작! 파란 팀인 네가 먼저야. 캐릭터를 눌러봐! 👆' : '챌린지 시작! 파란 팀 먼저! 캐릭터를 눌러봐 👆');
+}
+
+function say(color, text, type){
+  const b = $('bubble');
+  b.innerHTML = text;
+  b.classList.remove('say'); void b.offsetWidth; b.classList.add('say');
+  $('bubAv').innerHTML = pieceSVG(type || 'K', color);
+}
+
+function renderPlayer(el, c){
+  const capsHtml = caps[c].map(p => pieceSVG(p.t, p.c)).join('');
+  el.className = 'player ' + c + (!over && S.turn===c ? ' active' : '');
+  el.innerHTML = `<div class="av">${pieceSVG('K', c)}</div>
+    <div class="info"><div class="nm">${teamLabel(c)}</div><div class="caps">${capsHtml}</div></div>
+    <div class="money">$${money[c].toLocaleString()}</div>
+    <div class="turn-badge">${thinking && c==='b' ? '생각 중<span class="thinking"><i></i><i></i><i></i></span>' : '차례!'}</div>`;
+}
+
+function render(){
+  const chk = !over || true ? (inCheck(S) ? kingSq(S.board, S.turn) : -1) : -1;
+  const humanTurn = !over && !thinking && (mode==='pvp' || S.turn==='w');
+  for(let i=0;i<64;i++){
+    const d = sqs[i], p = S.board[i];
+    const r = i>>3, c = i&7;
+    let cls = 'sq ' + ((r+c)%2 ? 'd' : 'l');
+    if(lastMove && (lastMove.from===i || lastMove.to===i)) cls += ' last';
+    if(i===selected) cls += ' sel';
+    if(hintMove && (hintMove.from===i || hintMove.to===i)) cls += ' hint';
+    if(i===chk) cls += ' check';
+    const mv = selMoves.find(m => m.to===i);
+    if(mv) cls += (S.board[i] || mv.ep) ? ' cap' : ' mv';
+    if(humanTurn && p && p.c===S.turn) cls += ' mine';
+    d.className = cls;
+    const pc = d.querySelector('.piece');
+    const key = p ? p.t + p.c : '';
+    if(pc.dataset.k !== key){ pc.innerHTML = p ? pieceSVG(p.t, p.c) : ''; pc.dataset.k = key; }
+    pc.style.transition = 'none'; pc.style.transform = ''; pc.classList.remove('pop');
+    const old = d.querySelector('.float-money'); if(old && !(floatMsg && floatMsg.sq===i)) old.remove();
+  }
+  if(anim){
+    const pc = sqs[anim.to].querySelector('.piece');
+    const dx = (anim.from&7) - (anim.to&7), dy = (anim.from>>3) - (anim.to>>3);
+    pc.style.transform = `translate(${dx*100}%, ${dy*100}%)`;
+    pc.style.zIndex = 10;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      pc.style.transition = 'transform .28s cubic-bezier(.3,1.3,.5,1)';
+      pc.style.transform = '';
+      setTimeout(() => { pc.style.zIndex = ''; pc.style.transition = 'none'; }, 320);
+    }));
+    anim = null;
+  }
+  if(floatMsg){
+    const f = document.createElement('div'); f.className = 'float-money'; f.textContent = floatMsg.text;
+    sqs[floatMsg.sq].appendChild(f); setTimeout(() => f.remove(), 1300);
+    floatMsg = null;
+  }
+  renderPlayer($('pTop'), 'b'); renderPlayer($('pBot'), 'w');
+  $('btnUndo').disabled = !hist.length || thinking;
+  $('btnHint').disabled = over || thinking || (mode==='ai' && S.turn!=='w');
+}
+
+function onSquare(i){
+  if(over || thinking) return;
+  if(mode==='ai' && S.turn!=='w') return;
+  const p = S.board[i];
+  if(selected>=0){
+    const m = selMoves.find(x => x.to===i);
+    if(m){ if(m.promo) askPromo(m); else doMove(m); return; }
+    if(i===selected){ selected=-1; selMoves=[]; render(); return; }
+  }
+  if(p && p.c===S.turn){
+    selected = i; selMoves = legalMoves(S, i); hintMove = null;
+    SFX.pick();
+    const inf = INFO[p.t];
+    if(selMoves.length) say(p.c, `<span><b>${inf.name}</b> (${inf.chess})<br>${inf.say}</span>`, p.t);
+    else say(p.c, `<span><b>${inf.name}</b>는 지금 움직일 수 없어요 😅<br>${inCheck(S) ? '보스가 체크 상태야! 보스를 먼저 지켜줘!' : '다른 캐릭터를 골라봐!'}</span>`, p.t);
+    render();
+  } else {
+    if(p){ SFX.oops(); say(p.c, `<span>나는 ${TEAM[p.c].name} <b>${INFO[p.t].name}</b>!<br>${TEAM[S.turn].name} 캐릭터를 골라줘~</span>`, p.t); }
+    selected = -1; selMoves = []; render();
+  }
+}
+
+function askPromo(m){
+  pendingPromo = m;
+  const c = S.turn;
+  $('promoRow').innerHTML = ['Q','R','B','N'].map(t =>
+    `<button data-t="${t}">${pieceSVG(t, c)}${INFO[t].name}</button>`).join('');
+  $('promo').classList.add('show');
+}
+$('promoRow').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b || !pendingPromo) return;
+  const m = Object.assign({}, pendingPromo, {promo:b.dataset.t});
+  pendingPromo = null; $('promo').classList.remove('show');
+  doMove(m);
+});
+
+function doMove(m){
+  hist.push({ S, money:{...money}, caps:{w:caps.w.slice(), b:caps.b.slice()}, lastMove });
+  const mover = S.turn, piece = S.board[m.from];
+  const ns = makeMove(S, m);
+  S = { board:ns.board, turn:ns.turn, castle:ns.castle, ep:ns.ep };
+  lastMove = {from:m.from, to:m.to}; anim = {from:m.from, to:m.to};
+  selected = -1; selMoves = []; hintMove = null;
+  let msg = null;
+  if(ns.captured){
+    const prize = PRIZE[ns.captured.t];
+    money[mover] += prize; caps[mover].push(ns.captured);
+    floatMsg = {sq:m.to, text:`탈락! +$${prize}`};
+    SFX.coin();
+    msg = `<span><b>${INFO[ns.captured.t].name}</b> 탈락!! 💥<br>${teamLabel(mover)} 상금 <b>+$${prize}</b> 💰</span>`;
+  } else SFX.move();
+  if(m.promo) msg = `<span>🎉 챌린저가 <b>${INFO[m.promo].name}</b>(으)로 변신했어!</span>`;
+  if(m.castle) msg = `<span>🏰 캐슬링! 보스와 금고 지킴이가 자리를 바꿨어!</span>`;
+  checkEnd(mover, msg, m.promo || piece.t);
+  render();
+  if(!over && mode==='ai' && S.turn==='b') aiTurn();
+}
+
+function checkEnd(mover, msg, ptype){
+  const moves = legalMoves(S), chk = inCheck(S);
+  if(!moves.length){
+    over = true;
+    if(chk) setTimeout(() => showResult(mover), 700);
+    else setTimeout(() => showResult(null, '스테일메이트! 움직일 곳이 없어서 무승부예요.'), 700);
+    say(mover, chk ? '<span>👑 <b>체크메이트!!</b> 챌린지 끝!</span>' : '<span>앗, 움직일 곳이 없어요! 무승부!</span>');
+    return;
+  }
+  if(insufficient(S.board)){
+    over = true; setTimeout(() => showResult(null, '보스만 남아서 더 이상 잡을 수 없어요. 무승부!'), 700);
+    say(mover, '<span>보스들만 남았어! 무승부!</span>'); return;
+  }
+  if(chk){
+    SFX.check();
+    const victim = S.turn;
+    say(victim, `<span>⚠️ <b>체크!</b> ${teamLabel(victim)} 보스 비스트가 위험해!<br>보스를 지켜줘!</span>`);
+    return;
+  }
+  if(msg){ say(mover, msg, ptype); return; }
+  if(mode==='ai') say(S.turn, S.turn==='w' ? '<span>네 차례야! 어떤 캐릭터를 움직여 볼까? 🤔</span>' : '<span>컴퓨터가 생각 중... 🤖</span>');
+  else say(S.turn, `<span>${TEAM[S.turn].name} 차례! 💪</span>`);
+}
+
+function aiTurn(){
+  thinking = true; render();
+  setTimeout(() => {
+    const t0 = Date.now();
+    const m = aiPick(S, level);
+    const wait = Math.max(0, 550 - (Date.now()-t0));
+    setTimeout(() => {
+      thinking = false;
+      if(m && !over) doMove(m); else render();
+    }, wait);
+  }, 60);
+}
+
+function showResult(winner, drawMsg){
+  if(winner){
+    $('resHero').innerHTML = pieceSVG('K', winner);
+    const human = mode==='ai' ? winner==='w' : true;
+    $('resTitle').textContent = mode==='ai' ? (winner==='w' ? '🏆 챌린지 우승!!' : '😭 아깝다! 컴퓨터 승리') : `🏆 ${TEAM[winner].name} 우승!!`;
+    $('resPrize').textContent = human ? '$1,000,000' : `$${(money[winner]+100000).toLocaleString()}`;
+    $('resMsg').textContent = human ? '상대 보스를 꼼짝 못하게 만들었어요! 최고의 챌린저! 🎉' : '괜찮아! 다시 도전하면 이길 수 있어! 💪';
+    if(human){ SFX.win(); confetti(); }
+  } else {
+    $('resHero').innerHTML = pieceSVG('K','w') .replace('<svg','<svg style="width:110px;height:110px"') + pieceSVG('K','b').replace('<svg','<svg style="width:110px;height:110px"');
+    $('resTitle').textContent = '🤝 무승부!';
+    $('resPrize').textContent = '상금 반반!';
+    $('resMsg').textContent = drawMsg;
+  }
+  $('result').classList.add('show');
+}
+
+function confetti(){
+  const colors = ['#2f80ff','#ff4f9a','#ffd23f','#5fe08f','#ff9f1a','#9b8cff'];
+  for(let i=0;i<120;i++){
+    const d = document.createElement('div'); d.className = 'confetti';
+    d.style.left = Math.random()*100 + 'vw';
+    d.style.background = colors[i%colors.length];
+    d.style.animationDuration = (2.2 + Math.random()*2.2) + 's';
+    d.style.animationDelay = (Math.random()*0.8) + 's';
+    if(Math.random()<.3){ d.textContent='💵'; d.style.background='none'; d.style.fontSize='22px'; d.style.width='auto'; }
+    document.body.appendChild(d); setTimeout(() => d.remove(), 5500);
+  }
+}
+
+/* ---------- 버튼 ---------- */
+$('btnUndo').onclick = () => {
+  if(!hist.length || thinking) return;
+  let h = hist.pop();
+  if(mode==='ai' && h.S.turn==='b' && hist.length) h = hist.pop();
+  S = h.S; money = h.money; caps = h.caps; lastMove = h.lastMove;
+  over = false; selected = -1; selMoves = []; hintMove = null;
+  $('result').classList.remove('show');
+  render(); say(S.turn, '<span>↩️ 되돌렸어! 다시 생각해 보자 🤔</span>');
+};
+$('btnHint').onclick = () => {
+  if(over || thinking || (mode==='ai' && S.turn!=='w')) return;
+  const m = bestMove(S, 2, 0);
+  if(!m) return;
+  hintMove = m; selected = -1; selMoves = [];
+  const p = S.board[m.from];
+  render();
+  say(S.turn, `<span>💡 반짝이는 <b>${INFO[p.t].name}</b>를<br>반짝이는 칸으로 움직여 봐!</span>`, p.t);
+};
+$('btnNew').onclick = () => startGame(mode, level);
+$('btnHome').onclick = () => { $('levels').classList.remove('show'); $('menu').classList.add('show'); };
+$('btnSound').onclick = () => {
+  soundOn = !soundOn; $('btnSound').textContent = soundOn ? '🔊' : '🔇';
+  try{ localStorage.setItem('bc_sound', soundOn ? '1' : '0'); }catch(e){}
+  if(soundOn) SFX.pick();
+};
+$('btnGuide').onclick = () => $('guide').classList.add('show');
+$('guideClose').onclick = () => $('guide').classList.remove('show');
+$('guide').addEventListener('click', e => { if(e.target.id==='guide') $('guide').classList.remove('show'); });
+$('mPvp').onclick = () => startGame('pvp');
+$('mAi').onclick = () => $('levels').classList.add('show');
+document.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => startGame('ai', +b.dataset.lv));
+$('resAgain').onclick = () => startGame(mode, level);
+$('resHome').onclick = () => { $('result').classList.remove('show'); $('levels').classList.remove('show'); $('menu').classList.add('show'); };
+
+$('guideList').innerHTML = ['K','Q','R','B','N','P'].map(t => `
+  <div class="guide-item">${pieceSVG(t, t==='Q'||t==='N'||t==='P' ? 'b' : 'w')}
+    <div><div class="gn">${INFO[t].name}<span>${INFO[t].chess}</span></div>
+    <div class="gd">${INFO[t].move}</div>
+    ${PRIZE[t] ? `<div class="gp">💰 잡으면 상금 $${PRIZE[t]}</div>` : `<div class="gp">👑 꼼짝 못하게 하면 우승!</div>`}</div>
+  </div>`).join('');
+$('menuHero').innerHTML = pieceSVG('N','w') + pieceSVG('K','w') + pieceSVG('Q','b');
+
+S = newState(); hist = []; money = {w:0,b:0}; caps = {w:[],b:[]};
+render(); say('w', '챌린지 시작!');
+</script>
+</body>
+</html>
