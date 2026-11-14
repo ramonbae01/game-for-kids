@@ -50,7 +50,7 @@ K-Chess는 어린이도 쉽고 재미있게 체스를 배울 수 있도록 만�
 
 ## 앱 콘텐츠 > 개인정보처리방침
 - GitHub Pages 주소: https://ramonbae01.github.io/game-for-kids/k-chess/privacy.html (Pages를 켠 뒤)
-- privacy.html 안의 [연락처 이메일]을 먼저 채워 주세요
+- 문의 이메일: ramonbae01@gmail.com (privacy.html에 적혀 있음)
 
 ## 데이터 보안(Data safety)
 - 데이터를 수집하거나 공유하나요? → **아니요**
