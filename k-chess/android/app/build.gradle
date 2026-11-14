@@ -1,0 +1,66 @@
+plugins {
+    id 'com.android.application'
+}
+
+// 게임 파일(k-chess 폴더)을 그대로 앱에 넣어요.
+def webOut = layout.buildDirectory.dir('generated/webassets')
+tasks.register('copyWeb', Copy) {
+    from('../..') {
+        include 'index.html', 'characters.js', 'fonts/**'
+    }
+    into webOut
+}
+preBuild.dependsOn 'copyWeb'
+
+android {
+    namespace 'io.github.ramonbae01.kchess'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'io.github.ramonbae01.kchess'
+        minSdk 24
+        targetSdk 36
+        versionCode Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
+        versionName "1.0.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
+    }
+
+    sourceSets {
+        main { assets.srcDir(webOut) }
+    }
+
+    signingConfigs {
+        upload {
+            // GitHub Actions에서 넘겨주는 업로드 키 (README 참고)
+            def ks = System.getenv('KC_KEYSTORE_FILE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('KC_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KC_KEY_ALIAS')
+                keyPassword System.getenv('KC_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv('KC_KEYSTORE_FILE')) signingConfig signingConfigs.upload
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}
