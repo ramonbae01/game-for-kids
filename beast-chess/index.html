@@ -2,7 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>비스트 챌린지 체스</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
@@ -11,208 +13,192 @@
   --ink:#232a4d;
   --blue:#2f80ff; --blue-d:#1a5ad6; --blue-l:#9cc8ff;
   --pink:#ff4f9a; --pink-d:#d42a77; --pink-l:#ffb8d8;
-  --gold:#ffd23f; --gold-d:#e0a800;
-  --light:#fff4dc; --dark:#8fd3b6;
-  --card:#ffffff;
+  --gold:#ffd23f; --light:#fff4dc; --dark:#8fd3b6;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;min-height:100%}
+html,body{margin:0;height:100%;overflow:hidden}
 body{
-  font-family:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-  color:var(--ink);
+  font-family:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:var(--ink);
   background:
-    radial-gradient(circle at 12% 18%, rgba(255,255,255,.35) 0 40px, transparent 41px),
-    radial-gradient(circle at 88% 30%, rgba(255,255,255,.25) 0 70px, transparent 71px),
-    radial-gradient(circle at 70% 90%, rgba(255,255,255,.25) 0 55px, transparent 56px),
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.3) 0 40px, transparent 41px),
+    radial-gradient(circle at 88% 30%, rgba(255,255,255,.22) 0 70px, transparent 71px),
+    radial-gradient(circle at 70% 90%, rgba(255,255,255,.22) 0 55px, transparent 56px),
     linear-gradient(160deg,#5cb8ff 0%,#9b8cff 50%,#ff8cc6 100%);
-  background-attachment:fixed;
-  overflow-x:hidden;
-  user-select:none;-webkit-user-select:none;
+  user-select:none;-webkit-user-select:none;touch-action:manipulation;
 }
 button{font-family:inherit;color:inherit;cursor:pointer;border:none}
+input{font-family:inherit;color:var(--ink)}
 
-/* ---------- 상단 ---------- */
-.top{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  max-width:1060px;margin:0 auto;padding:12px 16px 4px}
-.logo{display:flex;align-items:center;gap:8px;filter:drop-shadow(0 4px 0 rgba(35,42,77,.35))}
-.logo-b{font-family:'Black Han Sans',sans-serif;font-size:clamp(22px,5vw,34px);letter-spacing:1px;
-  background:var(--blue);color:#fff;padding:2px 12px 0;border-radius:12px;border:3px solid var(--ink);transform:rotate(-4deg)}
-.logo-t{font-family:'Black Han Sans',sans-serif;font-size:clamp(20px,4.6vw,30px);color:#fff;
-  -webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
-.logo-t{white-space:nowrap}
-.top-btns{display:flex;gap:8px}
-@media (max-width:440px){.logo-t{font-size:18px}.logo-b{font-size:20px;padding:2px 8px 0}.icon-btn{width:40px;height:40px;font-size:19px}.top-btns{gap:6px}}
-.icon-btn{width:46px;height:46px;border-radius:14px;background:#fff;font-size:22px;
-  border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);transition:transform .1s}
-.icon-btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+/* ---------- 게임 화면 (체스판이 화면을 꽉 채움) ---------- */
+.game{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:max(6px,env(safe-area-inset-top)) 6px max(6px,env(safe-area-inset-bottom));
+  --B:min(calc(100vw - 12px), calc(100vh - 136px))}
+@supports (height:100dvh){ .game{--B:min(calc(100vw - 12px), calc(100dvh - 136px))} }
+.board-wrap{width:var(--B);height:var(--B);padding:5px;border-radius:16px;background:#ffb648;border:3px solid var(--ink);
+  box-shadow:0 5px 0 var(--ink), inset 0 0 0 3px #ffd88a;position:relative;flex:0 0 auto}
+.board{width:100%;height:100%;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+  border-radius:10px;overflow:hidden;border:2px solid var(--ink)}
 
-/* ---------- 레이아웃 ---------- */
-.layout{max-width:1060px;margin:0 auto;padding:6px 16px 24px;display:grid;
-  grid-template-columns:minmax(0,auto) minmax(240px,320px);gap:18px;justify-content:center;align-items:start}
-.board-area{display:flex;flex-direction:column;gap:10px;align-items:center;min-width:0}
-.side{display:flex;flex-direction:column;gap:14px;padding-top:58px}
-@media (max-width:860px){
-  .layout{grid-template-columns:minmax(0,1fr)}
-  .side{padding-top:0}
+/* 플레이어 바 */
+.bar{width:var(--B);height:58px;flex:0 0 auto;display:flex;align-items:center;gap:8px;background:#fff;border:3px solid var(--ink);
+  border-radius:16px;padding:4px 8px 4px 4px;box-shadow:0 4px 0 var(--ink);position:relative;transition:box-shadow .2s}
+.bar .av{width:44px;height:44px;flex:0 0 44px;border-radius:12px;display:grid;place-items:center}
+.bar.w .av{background:var(--blue-l)} .bar.b .av{background:var(--pink-l)}
+.bar .av svg{width:40px;height:40px}
+.bar .info{flex:1;min-width:0}
+.bar .nm{font-size:17px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .conn{font-size:12px;color:#d12f2f}
+.bar .caps{display:flex;flex-wrap:nowrap;overflow:hidden;min-height:18px;margin-top:2px}
+.bar .caps svg{width:19px;height:19px;flex:0 0 19px;margin-right:-4px}
+.bar .money{font-family:'Black Han Sans',sans-serif;font-size:18px;color:#14a052;background:#e6ffef;
+  border:2px solid #14a052;border-radius:10px;padding:1px 8px;white-space:nowrap}
+.bar .turn-badge{position:absolute;top:-13px;left:54px;background:var(--gold);border:3px solid var(--ink);
+  border-radius:999px;padding:0 10px;font-size:14px;animation:bob 1s ease-in-out infinite;white-space:nowrap}
+.bar.active.w{box-shadow:0 4px 0 var(--ink),0 0 0 4px rgba(47,128,255,.75)}
+.bar.active.b{box-shadow:0 4px 0 var(--ink),0 0 0 4px rgba(255,79,154,.75)}
+.menu-btn{width:44px;height:44px;flex:0 0 44px;border-radius:12px;background:var(--gold);border:3px solid var(--ink);
+  font-size:22px;line-height:1;box-shadow:0 3px 0 var(--ink)}
+.menu-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+
+/* 가로 화면: 양옆에 플레이어, 가운데 체스판 */
+@media (orientation:landscape) and (min-aspect-ratio:5/4){
+  .game{flex-direction:row;gap:10px;--B:min(calc(100vh - 16px), calc(100vw - 2*172px - 32px))}
+  @supports (height:100dvh){ .game{--B:min(calc(100dvh - 16px), calc(100vw - 2*172px - 32px))} }
+  .bar{width:168px;height:auto;flex-direction:column;text-align:center;padding:16px 8px 12px;gap:8px}
+  .bar .av{width:76px;height:76px;flex-basis:auto}
+  .bar .av svg{width:68px;height:68px}
+  .bar .info{width:100%}
+  .bar .nm{white-space:normal}
+  .bar .caps{flex-wrap:wrap;justify-content:center;margin-top:6px}
+  .bar .caps svg{width:24px;height:24px;flex-basis:24px}
+  .bar .turn-badge{left:50%;transform:translateX(-50%);animation:none}
+  .menu-btn{width:100%;height:46px;flex-basis:auto}
+  #pTop{order:0} .board-wrap{order:1} #pBot{order:2}
 }
 
-/* ---------- 플레이어 바 ---------- */
-.player{width:var(--bw);display:flex;align-items:center;gap:10px;background:#fff;border:3px solid var(--ink);
-  border-radius:18px;padding:6px 12px 6px 6px;box-shadow:0 4px 0 var(--ink);position:relative;transition:transform .2s, box-shadow .2s}
-.player .av{width:48px;height:48px;flex:0 0 48px;border-radius:14px;display:grid;place-items:center}
-.player.w .av{background:var(--blue-l)} .player.b .av{background:var(--pink-l)}
-.player .av svg{width:44px;height:44px}
-.player .info{flex:1;min-width:0}
-.player .nm{font-size:18px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.player .caps{display:flex;flex-wrap:wrap;gap:0;min-height:22px;margin-top:2px}
-.player .caps svg{width:22px;height:22px;margin-right:-5px}
-.player .money{font-family:'Black Han Sans',sans-serif;font-size:20px;color:#14a052;background:#e6ffef;
-  border:2px solid #14a052;border-radius:12px;padding:2px 10px;white-space:nowrap}
-.player .turn-badge{position:absolute;top:-14px;right:14px;background:var(--gold);border:3px solid var(--ink);
-  border-radius:999px;padding:0 10px;font-size:15px;display:none;animation:bob 1s ease-in-out infinite}
-.player.active{transform:scale(1.02)}
-.player.active.w{box-shadow:0 4px 0 var(--ink),0 0 0 5px rgba(47,128,255,.55)}
-.player.active.b{box-shadow:0 4px 0 var(--ink),0 0 0 5px rgba(255,79,154,.55)}
-.player.active .turn-badge{display:block}
-
-/* ---------- 보드 ---------- */
-:root{--bw:min(calc(100vw - 32px), 600px, calc(100vh - 230px))}
-@media (max-width:860px){:root{--bw:min(calc(100vw - 32px), 600px)}}
-@media (min-width:861px){:root{--bw:max(380px, min(600px, calc(100vh - 230px)))}}
-.board-wrap{padding:10px;border-radius:22px;background:#ffb648;border:4px solid var(--ink);
-  box-shadow:0 7px 0 var(--ink), inset 0 0 0 4px #ffd88a}
-.board{width:calc(var(--bw) - 28px);aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);
-  grid-template-rows:repeat(8,1fr);border-radius:12px;overflow:hidden;border:3px solid var(--ink)}
+/* 칸 */
 .sq{position:relative;cursor:pointer}
 .sq.l{background:var(--light)} .sq.d{background:var(--dark)}
 .sq.last.l{background:#ffe98a} .sq.last.d{background:#d9d65b}
 .sq.sel{background:#ffd23f !important;box-shadow:inset 0 0 0 4px #ff9f1a}
 .sq.hint{animation:hintPulse .9s ease-in-out infinite}
-@keyframes hintPulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,159,26,.0)}50%{box-shadow:inset 0 0 0 6px rgba(255,159,26,.95)}}
+@keyframes hintPulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,159,26,0)}50%{box-shadow:inset 0 0 0 6px rgba(255,159,26,.95)}}
 .sq.check::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(255,40,60,.85) 0%,rgba(255,40,60,.35) 55%,transparent 75%);animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.6}50%{opacity:1}}
-.sq.mv::after{content:"";position:absolute;left:50%;top:50%;width:30%;height:30%;transform:translate(-50%,-50%);
-  border-radius:50%;background:rgba(35,42,77,.28);z-index:3;pointer-events:none;animation:dotIn .2s ease-out}
-.sq.cap::after{content:"";position:absolute;inset:6%;border-radius:50%;border:5px solid rgba(255,60,80,.8);z-index:3;pointer-events:none;animation:dotIn .2s ease-out}
-@keyframes dotIn{from{transform:translate(-50%,-50%) scale(0)}}
-.sq.cap::after{animation:none}
-.coord{position:absolute;font-size:clamp(8px,1.5vw,12px);opacity:.55;pointer-events:none;z-index:1}
+.sq.mv::after{content:"";position:absolute;left:35%;top:35%;width:30%;height:30%;border-radius:50%;background:rgba(35,42,77,.28);z-index:3;pointer-events:none}
+.sq.cap::after{content:"";position:absolute;inset:6%;border-radius:50%;border:5px solid rgba(255,60,80,.8);z-index:3;pointer-events:none}
+.coord{position:absolute;font-size:clamp(8px,1.4vw,12px);opacity:.5;pointer-events:none;z-index:1}
 .coord.f{right:3px;bottom:1px} .coord.r{left:3px;top:1px}
-.piece{position:absolute;inset:0;padding:4%;z-index:2;pointer-events:none;transition:none}
+.piece{position:absolute;inset:0;padding:4%;z-index:2;pointer-events:none}
 .piece svg{width:100%;height:100%;display:block;overflow:visible}
-.sq.mine:hover .piece{transform:translateY(-4%) scale(1.06);transition:transform .12s}
+@media (hover:hover){ .sq.mine:hover .piece{transform:translateY(-4%) scale(1.06);transition:transform .12s} }
 .sq.sel .piece{animation:hop .6s ease-in-out infinite}
 @keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-9%)}}
-.piece.pop{animation:pop .35s ease-out}
-@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
 .float-money{position:absolute;z-index:20;pointer-events:none;font-family:'Black Han Sans',sans-serif;
-  color:#14a052;font-size:clamp(16px,3.4vw,26px);-webkit-text-stroke:1.5px #fff;paint-order:stroke fill;
-  animation:floatUp 1.2s ease-out forwards;white-space:nowrap;left:50%;top:10%;transform:translateX(-50%)}
-@keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}20%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-60px) scale(1)}}
+  color:#14a052;font-size:clamp(15px,3.4vw,26px);-webkit-text-stroke:1.5px #fff;paint-order:stroke fill;
+  animation:floatUp 1.2s ease-out forwards;white-space:nowrap;left:50%;top:10%}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}20%{opacity:1;transform:translate(-50%,0) scale(1.15)}100%{opacity:0;transform:translate(-50%,-60px)}}
 
-/* ---------- 말풍선 & 버튼 ---------- */
-.bubble-box{display:flex;gap:10px;align-items:flex-end}
-.bubble-avatar{width:76px;height:76px;flex:0 0 76px;border-radius:20px;background:#fff;border:3px solid var(--ink);
-  box-shadow:0 4px 0 var(--ink);display:grid;place-items:center}
-.bubble-avatar svg{width:66px;height:66px}
-.bubble{flex:1;background:#fff;border:3px solid var(--ink);border-radius:20px 20px 20px 4px;padding:12px 14px;
-  font-size:19px;line-height:1.35;box-shadow:0 4px 0 var(--ink);min-height:76px;display:flex;align-items:center}
-.bubble.say{animation:say .3s ease-out}
-@keyframes say{0%{transform:scale(.9)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.actions .btn:last-child{grid-column:1 / -1}
-.btn{font-size:21px;padding:12px 10px;border-radius:16px;border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);
-  transition:transform .1s, box-shadow .1s}
+/* 말풍선 토스트 (체스판 위에 잠깐 떴다 사라짐) */
+.toast{position:absolute;left:50%;top:10px;z-index:30;display:flex;gap:8px;align-items:center;background:#fff;
+  border:3px solid var(--ink);border-radius:16px;padding:5px 12px 5px 5px;max-width:92%;width:max-content;
+  font-size:clamp(14px,3.6vw,18px);line-height:1.3;box-shadow:0 4px 0 var(--ink);pointer-events:none;
+  opacity:0;transform:translate(-50%,-10px) scale(.95);transition:opacity .2s, transform .25s}
+.toast.bottom{top:auto;bottom:10px}
+.toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+.toast .tav{width:42px;height:42px;flex:0 0 42px}
+.toast .tav svg{width:100%;height:100%}
+
+/* ---------- 오버레이 ---------- */
+.overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;
+  background:rgba(35,42,77,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.overlay.show{display:flex}
+.card{background:#fff;border:4px solid var(--ink);border-radius:26px;box-shadow:0 8px 0 var(--ink);padding:20px;
+  max-width:560px;width:100%;max-height:calc(100% - 8px);overflow:auto;text-align:center;animation:cardIn .35s cubic-bezier(.2,1.4,.5,1)}
+@keyframes cardIn{from{transform:scale(.7);opacity:0}}
+.card h2{font-family:'Black Han Sans',sans-serif;font-size:28px;margin:4px 0 6px;font-weight:normal}
+.card p{font-size:17px;margin:6px 0 12px}
+.btn{font-size:20px;padding:12px 10px;border-radius:16px;border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);transition:transform .1s, box-shadow .1s}
 .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-yellow{background:var(--gold)} .btn-white{background:#fff} .btn-green{background:#5fe08f}
 .btn-blue{background:var(--blue);color:#fff} .btn-pink{background:var(--pink);color:#fff}
-.tips{background:rgba(255,255,255,.85);border:3px solid var(--ink);border-radius:18px;padding:10px 14px;font-size:16px;line-height:1.5}
-.tips b{color:var(--pink-d);font-weight:normal}
-@media (max-width:860px){
-  .side{width:var(--bw);margin:0 auto}
-  .bubble{font-size:17px}
-}
+.wide{width:100%}
 
-/* ---------- 오버레이 ---------- */
-.overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;
-  background:rgba(35,42,77,.55);backdrop-filter:blur(4px)}
-.overlay.show{display:flex}
-.card{background:#fff;border:4px solid var(--ink);border-radius:26px;box-shadow:0 8px 0 var(--ink);padding:22px;
-  max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;text-align:center;animation:cardIn .35s cubic-bezier(.2,1.4,.5,1)}
-@keyframes cardIn{from{transform:scale(.7);opacity:0}}
-.card h2{font-family:'Black Han Sans',sans-serif;font-size:30px;margin:4px 0 6px;font-weight:normal}
-.card p{font-size:18px;margin:6px 0 14px}
-.menu-hero{display:flex;justify-content:center;gap:4px;margin-bottom:4px}
-.menu-hero svg{width:70px;height:70px}
-.menu-hero svg:nth-child(2){width:96px;height:96px;margin-top:-18px}
-.menu-title{font-family:'Black Han Sans',sans-serif;font-size:clamp(30px,8vw,44px);line-height:1.05;margin:6px 0}
+.menu-hero{display:flex;justify-content:center;gap:4px;margin-bottom:2px}
+.menu-hero svg{width:66px;height:66px}
+.menu-hero svg:nth-child(2){width:92px;height:92px;margin-top:-18px}
+.menu-title{font-family:'Black Han Sans',sans-serif;font-size:clamp(30px,8vw,44px);line-height:1.05;margin:4px 0}
 .menu-title .bb{color:var(--blue)} .menu-title .pp{color:var(--pink)}
-.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
-.mode{border:3px solid var(--ink);border-radius:20px;padding:14px 8px;box-shadow:0 5px 0 var(--ink);font-size:20px;line-height:1.3}
-.mode .em{font-size:38px;display:block}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:10px}
+.mode{border:3px solid var(--ink);border-radius:20px;padding:12px 8px;box-shadow:0 5px 0 var(--ink);font-size:20px;line-height:1.3}
+.mode .em{font-size:36px;display:block}
 .mode small{display:block;font-size:14px;opacity:.8}
-.mode.pvp{background:#ffe3f0} .mode.ai{background:#dcecff}
+.mode.pvp{background:#ffe3f0} .mode.ai{background:#dcecff} .mode.net{background:#e3ffe9}
 .mode:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 .levels{display:none;margin-top:14px}
 .levels.show{display:block;animation:cardIn .3s}
 .level-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.level-row .btn{font-size:19px;padding:12px 4px}
+.level-row .btn{font-size:18px;padding:12px 4px}
 .level-row .btn small{display:block;font-size:13px}
+
+/* 로비 */
+.field{display:flex;gap:8px;align-items:center;margin:8px 0}
+.field label{font-size:17px;white-space:nowrap}
+.field input{flex:1;min-width:0;font-size:20px;padding:10px 12px;border:3px solid var(--ink);border-radius:14px;outline:none;background:#fffbea}
+.field input:focus{box-shadow:0 0 0 4px rgba(47,128,255,.35)}
+.room-list{display:grid;gap:8px;margin:8px 0 12px;min-height:56px}
+.room{display:flex;align-items:center;gap:10px;background:#f5f8ff;border:3px solid var(--ink);border-radius:16px;padding:6px 6px 6px 8px;text-align:left}
+.room svg{width:40px;height:40px;flex:0 0 40px}
+.room .rn{flex:1;font-size:18px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room .rn small{display:block;font-size:13px;opacity:.7}
+.room .btn{font-size:17px;padding:8px 12px;box-shadow:0 3px 0 var(--ink)}
+.empty{font-size:15px;opacity:.75;padding:14px;border:3px dashed #c7cde3;border-radius:16px}
+.net-msg{min-height:22px;font-size:15px;color:#d12f2f;margin:4px 0}
+.sub{font-size:16px;margin:14px 0 4px;text-align:left}
+.code-big{font-family:'Black Han Sans',sans-serif;font-size:64px;letter-spacing:10px;color:var(--blue);margin:2px 0;
+  -webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.dots{display:inline-flex;gap:6px;margin:8px 0 14px}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--pink);animation:bob .6s infinite}
+.dots i:nth-child(2){animation-delay:.15s;background:var(--gold)}.dots i:nth-child(3){animation-delay:.3s;background:var(--blue)}
+
+/* 메뉴 시트 */
+.sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 12px}
+.sheet-grid .btn{font-size:18px;padding:14px 6px}
+.sheet-grid .btn.hide{display:none}
+
 .promo-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .promo-row button{background:#fff8e6;border:3px solid var(--ink);border-radius:18px;padding:6px 4px;box-shadow:0 4px 0 var(--ink);font-size:15px}
 .promo-row svg{width:100%;height:auto;aspect-ratio:1}
 .guide-list{display:grid;gap:10px;text-align:left}
 .guide-item{display:flex;gap:12px;align-items:center;background:#f5f8ff;border:3px solid var(--ink);border-radius:18px;padding:8px 12px}
-.guide-item svg{width:62px;height:62px;flex:0 0 62px}
+.guide-item svg{width:60px;height:60px;flex:0 0 60px}
 .guide-item .gn{font-size:20px} .guide-item .gn span{font-size:14px;background:var(--gold);border-radius:8px;padding:0 6px;margin-left:4px}
 .guide-item .gd{font-size:15px;line-height:1.4;opacity:.9}
 .guide-item .gp{font-size:14px;color:#14a052}
-.result-hero svg{width:150px;height:150px;animation:hop .8s ease-in-out infinite}
-.prize{font-family:'Black Han Sans',sans-serif;font-size:clamp(30px,9vw,46px);color:#14a052;margin:4px 0;
-  -webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.result-hero svg{width:140px;height:140px;animation:hop .8s ease-in-out infinite}
+.prize{font-family:'Black Han Sans',sans-serif;font-size:clamp(30px,9vw,46px);color:#14a052;margin:4px 0;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill}
+.res-note{min-height:22px;font-size:17px;color:var(--pink-d);margin:0 0 8px}
+.res-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .confetti{position:fixed;top:-20px;width:12px;height:18px;z-index:60;pointer-events:none;animation:fall linear forwards;border-radius:3px}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-.thinking{display:inline-flex;gap:4px;margin-left:6px}
-.thinking i{width:8px;height:8px;border-radius:50%;background:var(--pink);animation:bob .6s infinite}
+.thinking{display:inline-flex;gap:3px;margin-left:4px}
+.thinking i{width:6px;height:6px;border-radius:50%;background:var(--pink);animation:bob .6s infinite}
 .thinking i:nth-child(2){animation-delay:.15s}.thinking i:nth-child(3){animation-delay:.3s}
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="logo"><span class="logo-b">BEAST</span><span class="logo-t">챌린지 체스</span></div>
-  <div class="top-btns">
-    <button class="icon-btn" id="btnGuide" title="캐릭터 도감" aria-label="캐릭터 도감">📖</button>
-    <button class="icon-btn" id="btnSound" title="소리 켜기/끄기" aria-label="소리">🔊</button>
-    <button class="icon-btn" id="btnHome" title="처음 화면" aria-label="처음 화면">🏠</button>
-  </div>
-</header>
 
-<main class="layout">
-  <section class="board-area">
-    <div class="player b" id="pTop"></div>
-    <div class="board-wrap"><div id="board" class="board"></div></div>
-    <div class="player w" id="pBot"></div>
-  </section>
-  <aside class="side">
-    <div class="bubble-box">
-      <div class="bubble-avatar" id="bubAv"></div>
-      <div class="bubble" id="bubble">챌린지 시작!</div>
-    </div>
-    <div class="actions">
-      <button class="btn btn-yellow" id="btnHint">💡 힌트</button>
-      <button class="btn btn-white" id="btnUndo">↩️ 되돌리기</button>
-      <button class="btn btn-green" id="btnNew">🔄 새 게임</button>
-    </div>
-    <div class="tips">
-      👆 <b>내 캐릭터</b>를 누르면 갈 수 있는 곳에 <b>점</b>이 생겨요.<br>
-      🔴 <b>빨간 동그라미</b>는 상대를 잡을 수 있는 곳!<br>
-      💰 상대를 잡으면 <b>상금</b>을 받아요.<br>
-      👑 상대 <b>보스 비스트</b>를 꼼짝 못하게 하면 우승!
-    </div>
-  </aside>
-</main>
+<!-- 게임 화면 -->
+<div class="game" id="game">
+  <div class="bar b" id="pTop"></div>
+  <div class="board-wrap">
+    <div id="board" class="board"></div>
+    <div class="toast" id="toast"><div class="tav" id="toastAv"></div><div id="toastTxt"></div></div>
+  </div>
+  <div class="bar w" id="pBot"></div>
+</div>
 
 <!-- 시작 메뉴 -->
 <div class="overlay show" id="menu">
@@ -221,8 +207,9 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none}
     <div class="menu-title"><span class="bb">BEAST</span> <span class="pp">챌린지</span><br>체스</div>
     <p>보스 비스트를 지켜라! 마지막까지 살아남는 팀이 상금을 가져가요 💰</p>
     <div class="mode-grid">
-      <button class="mode pvp" id="mPvp"><span class="em">👫</span>친구랑 하기<small>한 화면에서 둘이 번갈아</small></button>
-      <button class="mode ai" id="mAi"><span class="em">🤖</span>컴퓨터랑 하기<small>나는 파란 팀!</small></button>
+      <button class="mode ai" id="mAi"><span class="em">🤖</span>컴퓨터랑<small>나는 파란 팀!</small></button>
+      <button class="mode pvp" id="mPvp"><span class="em">👫</span>한 화면에서 둘이<small>번갈아 가며 두기</small></button>
+      <button class="mode net" id="mNet"><span class="em">🌐</span>다른 기기랑<small>친구 폰·태블릿과 대결</small></button>
     </div>
     <div class="levels" id="levels">
       <p style="margin:6px 0 10px">컴퓨터 실력을 골라요!</p>
@@ -232,6 +219,50 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none}
         <button class="btn btn-pink" data-lv="2">🔥 어려움<small>자신 있어요</small></button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 온라인 로비 -->
+<div class="overlay" id="lobby">
+  <div class="card">
+    <h2>🌐 다른 기기랑 대결</h2>
+    <div class="field"><label for="nick">내 이름</label><input id="nick" maxlength="8" autocomplete="off" placeholder="이름"></div>
+    <button class="btn btn-blue wide" id="lCreate">🏠 새 방 만들기</button>
+    <div class="sub">👇 친구가 만든 방에 들어가기</div>
+    <div class="room-list" id="roomList"><div class="empty">방을 찾는 중…</div></div>
+    <div class="field"><input id="codeIn" inputmode="numeric" maxlength="4" placeholder="방 번호 4자리"><button class="btn btn-yellow" id="lJoin" style="font-size:17px;padding:10px 14px">입장</button></div>
+    <div class="net-msg" id="netMsg"></div>
+    <button class="btn btn-white wide" id="lBack">← 뒤로</button>
+  </div>
+</div>
+
+<!-- 상대 기다리기 -->
+<div class="overlay" id="wait">
+  <div class="card">
+    <h2>친구를 기다리는 중</h2>
+    <p>우리 방 번호는</p>
+    <div class="code-big" id="waitCode">----</div>
+    <div class="dots"><i></i><i></i><i></i></div>
+    <p>친구 화면의 <b>방 목록</b>에서 내 이름을 누르거나<br>방 번호를 입력하면 바로 시작해요!</p>
+    <button class="btn btn-white wide" id="wCancel">취소</button>
+  </div>
+</div>
+
+<!-- 게임 중 메뉴 -->
+<div class="overlay" id="sheet">
+  <div class="card">
+    <h2>메뉴</h2>
+    <div class="sheet-grid">
+      <button class="btn btn-yellow" id="sHint">💡 힌트</button>
+      <button class="btn btn-white" id="sUndo">↩️ 되돌리기</button>
+      <button class="btn btn-green" id="sNew">🔄 새 게임</button>
+      <button class="btn btn-white" id="sResign">🏳️ 기권</button>
+      <button class="btn btn-white" id="sGuide">📖 캐릭터 도감</button>
+      <button class="btn btn-white" id="sSound">🔊 소리 켜짐</button>
+      <button class="btn btn-white" id="sFull">⛶ 전체 화면</button>
+      <button class="btn btn-pink" id="sHome">🏠 처음으로</button>
+    </div>
+    <button class="btn btn-blue wide" id="sClose">▶ 게임으로 돌아가기</button>
   </div>
 </div>
 
@@ -250,7 +281,7 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none}
     <h2>📖 캐릭터 도감</h2>
     <p>각 캐릭터가 어떻게 움직이는지 알아봐요!</p>
     <div class="guide-list" id="guideList"></div>
-    <button class="btn btn-yellow" id="guideClose" style="margin-top:14px;width:100%">알겠어요! 👍</button>
+    <button class="btn btn-yellow wide" id="guideClose" style="margin-top:14px">알겠어요! 👍</button>
   </div>
 </div>
 
@@ -261,10 +292,12 @@ button{font-family:inherit;color:inherit;cursor:pointer;border:none}
     <h2 id="resTitle"></h2>
     <div class="prize" id="resPrize"></div>
     <p id="resMsg"></p>
-    <div class="mode-grid">
+    <div class="res-note" id="resNote"></div>
+    <div class="res-btns">
       <button class="btn btn-green" id="resAgain">🔄 한 판 더!</button>
       <button class="btn btn-white" id="resHome">🏠 처음으로</button>
     </div>
+    <button class="btn btn-white wide" id="resView" style="margin-top:12px;font-size:16px;padding:8px">👀 체스판 다시 보기</button>
   </div>
 </div>
 
@@ -589,209 +622,278 @@ const SFX = {
    게임 진행 & 화면
    ========================================================= */
 const $ = id => document.getElementById(id);
+const show = id => $(id).classList.add('show');
+const hide = id => $(id).classList.remove('show');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const store = {
+  get(k, ss){ try{ return (ss ? sessionStorage : localStorage).getItem(k); }catch(e){ return null; } },
+  set(k, v, ss){ try{ (ss ? sessionStorage : localStorage).setItem(k, v); }catch(e){} },
+  del(k, ss){ try{ (ss ? sessionStorage : localStorage).removeItem(k); }catch(e){} }
+};
+
+let S, hist = [], mode = 'ai', level = 0, selected = -1, selMoves = [], lastMove = null, hintMove = null,
+    over = false, money = {w:0,b:0}, caps = {w:[],b:[]}, thinking = false, anim = null, pendingPromo = null,
+    floatMsg = null, myColor = 'w', flip = false, gameToken = 0;
+
+soundOn = store.get('bc_sound') !== '0';
+
+/* ---------- 체스판 칸 만들기 (화면 위치 v ↔ 실제 칸 i) ---------- */
+const vi = v => flip ? 63 - v : v;
 const boardEl = $('board');
-let S, hist, mode = 'ai', level = 0, selected = -1, selMoves = [], lastMove = null,
-    hintMove = null, over = false, money, caps, thinking = false, anim = null, pendingPromo = null, floatMsg = null;
-
-try{ soundOn = localStorage.getItem('bc_sound') !== '0'; }catch(e){}
-$('btnSound').textContent = soundOn ? '🔊' : '🔇';
-
-const sqs = [];
-for(let i=0;i<64;i++){
+const sqs = [], fileLbl = [], rankLbl = [];
+for(let v=0; v<64; v++){
   const d = document.createElement('div');
-  const r = i>>3, c = i&7;
+  const r = v>>3, c = v&7;
   d.className = 'sq ' + ((r+c)%2 ? 'd' : 'l');
-  if(r===7){ const f = document.createElement('span'); f.className='coord f'; f.textContent='abcdefgh'[c]; d.appendChild(f); }
-  if(c===0){ const f = document.createElement('span'); f.className='coord r'; f.textContent=8-r; d.appendChild(f); }
+  if(r===7){ const f = document.createElement('span'); f.className='coord f'; d.appendChild(f); fileLbl[c] = f; }
+  if(c===0){ const f = document.createElement('span'); f.className='coord r'; d.appendChild(f); rankLbl[r] = f; }
   const pc = document.createElement('div'); pc.className = 'piece'; d.appendChild(pc);
-  d.addEventListener('click', () => onSquare(i));
+  d.addEventListener('click', () => onSquare(vi(v)));
   boardEl.appendChild(d); sqs.push(d);
 }
 
+function oppName(){
+  const r = online.room, oc = opp(myColor);
+  return r && r.players && r.players[oc] ? r.players[oc].name : '상대';
+}
 function teamLabel(c){
   if(mode==='ai') return c==='w' ? '나 · 파란 팀' : '컴퓨터 · 핑크 팀';
+  if(mode==='online'){
+    const r = online.room, p = r && r.players && r.players[c];
+    return (p ? p.name : TEAM[c].name) + (c===myColor ? ' (나)' : '');
+  }
   return TEAM[c].name;
 }
-
-function startGame(m, lv){
-  mode = m; if(lv!==undefined) level = lv;
-  S = newState(); hist = []; selected = -1; selMoves = []; lastMove = null; hintMove = null;
-  over = false; thinking = false; anim = null;
-  money = {w:0, b:0}; caps = {w:[], b:[]};
-  $('menu').classList.remove('show'); $('result').classList.remove('show');
-  render();
-  say('w', mode==='ai' ? '챌린지 시작! 파란 팀인 네가 먼저야. 캐릭터를 눌러봐! 👆' : '챌린지 시작! 파란 팀 먼저! 캐릭터를 눌러봐 👆');
+function canMove(){
+  if(over || thinking) return false;
+  if(mode==='pvp') return true;
+  if(mode==='ai') return S.turn==='w';
+  return S.turn===myColor && online.room && online.room.status==='playing';
 }
 
-function say(color, text, type){
-  const b = $('bubble');
-  b.innerHTML = text;
-  b.classList.remove('say'); void b.offsetWidth; b.classList.add('say');
-  $('bubAv').innerHTML = pieceSVG(type || 'K', color);
+/* ---------- 말풍선 토스트 ---------- */
+let toastTimer = null;
+function say(color, text, type, where, ms){
+  $('toastTxt').innerHTML = text;
+  $('toastAv').innerHTML = pieceSVG(type || 'K', color);
+  const t = $('toast');
+  t.classList.toggle('bottom', where==='bottom');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2600);
 }
 
-function renderPlayer(el, c){
+/* ---------- 화면 그리기 ---------- */
+function renderBars(){
+  const bottom = mode==='online' ? myColor : 'w', top = opp(bottom);
+  renderBar($('pTop'), top, false);
+  renderBar($('pBot'), bottom, true);
+}
+function renderBar(el, c, isBottom){
   const capsHtml = caps[c].map(p => pieceSVG(p.t, p.c)).join('');
-  el.className = 'player ' + c + (!over && S.turn===c ? ' active' : '');
+  el.className = 'bar ' + c + (!over && S.turn===c ? ' active' : '');
+  let badge = '';
+  if(!over && S.turn===c){
+    if(thinking && mode==='ai') badge = '생각 중<span class="thinking"><i></i><i></i><i></i></span>';
+    else if(mode==='online') badge = c===myColor ? '내 차례!' : '상대 차례';
+    else badge = '차례!';
+  }
+  let conn = '';
+  const r = online.room;
+  if(mode==='online' && c!==myColor && r && r.seen && r.seen[c] != null && r.seen[c] > 20) conn = ' <span class="conn">📡 연결 끊김?</span>';
   el.innerHTML = `<div class="av">${pieceSVG('K', c)}</div>
-    <div class="info"><div class="nm">${teamLabel(c)}</div><div class="caps">${capsHtml}</div></div>
+    <div class="info"><div class="nm">${esc(teamLabel(c))}${conn}</div><div class="caps">${capsHtml}</div></div>
     <div class="money">$${money[c].toLocaleString()}</div>
-    <div class="turn-badge">${thinking && c==='b' ? '생각 중<span class="thinking"><i></i><i></i><i></i></span>' : '차례!'}</div>`;
+    ${badge ? `<div class="turn-badge">${badge}</div>` : ''}
+    ${isBottom ? '<button class="menu-btn" aria-label="메뉴">☰</button>' : ''}`;
 }
-
 function render(){
-  const chk = !over || true ? (inCheck(S) ? kingSq(S.board, S.turn) : -1) : -1;
-  const humanTurn = !over && !thinking && (mode==='pvp' || S.turn==='w');
-  for(let i=0;i<64;i++){
-    const d = sqs[i], p = S.board[i];
-    const r = i>>3, c = i&7;
+  const chk = inCheck(S) ? kingSq(S.board, S.turn) : -1;
+  const humanTurn = canMove();
+  for(let c=0;c<8;c++){
+    if(fileLbl[c]) fileLbl[c].textContent = 'abcdefgh'[flip ? 7-c : c];
+    if(rankLbl[c]) rankLbl[c].textContent = flip ? c+1 : 8-c;
+  }
+  for(let v=0; v<64; v++){
+    const i = vi(v), d = sqs[v], p = S.board[i];
+    const r = v>>3, c = v&7;
     let cls = 'sq ' + ((r+c)%2 ? 'd' : 'l');
     if(lastMove && (lastMove.from===i || lastMove.to===i)) cls += ' last';
     if(i===selected) cls += ' sel';
     if(hintMove && (hintMove.from===i || hintMove.to===i)) cls += ' hint';
     if(i===chk) cls += ' check';
     const mv = selMoves.find(m => m.to===i);
-    if(mv) cls += (S.board[i] || mv.ep) ? ' cap' : ' mv';
+    if(mv) cls += (p || mv.ep) ? ' cap' : ' mv';
     if(humanTurn && p && p.c===S.turn) cls += ' mine';
     d.className = cls;
     const pc = d.querySelector('.piece');
     const key = p ? p.t + p.c : '';
     if(pc.dataset.k !== key){ pc.innerHTML = p ? pieceSVG(p.t, p.c) : ''; pc.dataset.k = key; }
-    pc.style.transition = 'none'; pc.style.transform = ''; pc.classList.remove('pop');
-    const old = d.querySelector('.float-money'); if(old && !(floatMsg && floatMsg.sq===i)) old.remove();
+    pc.style.transition = 'none'; pc.style.transform = ''; pc.style.zIndex = '';
   }
   if(anim){
-    const pc = sqs[anim.to].querySelector('.piece');
-    const dx = (anim.from&7) - (anim.to&7), dy = (anim.from>>3) - (anim.to>>3);
+    const fv = vi(anim.from), tv = vi(anim.to);
+    const pc = sqs[tv].querySelector('.piece');
+    const dx = (fv&7) - (tv&7), dy = (fv>>3) - (tv>>3);
     pc.style.transform = `translate(${dx*100}%, ${dy*100}%)`;
     pc.style.zIndex = 10;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       pc.style.transition = 'transform .28s cubic-bezier(.3,1.3,.5,1)';
       pc.style.transform = '';
-      setTimeout(() => { pc.style.zIndex = ''; pc.style.transition = 'none'; }, 320);
     }));
     anim = null;
   }
   if(floatMsg){
     const f = document.createElement('div'); f.className = 'float-money'; f.textContent = floatMsg.text;
-    sqs[floatMsg.sq].appendChild(f); setTimeout(() => f.remove(), 1300);
+    sqs[vi(floatMsg.sq)].appendChild(f); setTimeout(() => f.remove(), 1300);
     floatMsg = null;
   }
-  renderPlayer($('pTop'), 'b'); renderPlayer($('pBot'), 'w');
-  $('btnUndo').disabled = !hist.length || thinking;
-  $('btnHint').disabled = over || thinking || (mode==='ai' && S.turn!=='w');
+  renderBars();
 }
 
+/* ---------- 칸 누르기 ---------- */
 function onSquare(i){
-  if(over || thinking) return;
-  if(mode==='ai' && S.turn!=='w') return;
+  if(!canMove()){
+    if(mode==='online' && !over && online.room && online.room.status==='playing' && S.turn!==myColor)
+      say(opp(myColor), `<span>지금은 <b>${esc(oppName())}</b> 차례야! 기다려줘 ⏳</span>`);
+    return;
+  }
   const p = S.board[i];
   if(selected>=0){
     const m = selMoves.find(x => x.to===i);
     if(m){ if(m.promo) askPromo(m); else doMove(m); return; }
     if(i===selected){ selected=-1; selMoves=[]; render(); return; }
   }
+  const where = (vi(i)>>3) < 4 ? 'bottom' : 'top';
   if(p && p.c===S.turn){
     selected = i; selMoves = legalMoves(S, i); hintMove = null;
     SFX.pick();
     const inf = INFO[p.t];
-    if(selMoves.length) say(p.c, `<span><b>${inf.name}</b> (${inf.chess})<br>${inf.say}</span>`, p.t);
-    else say(p.c, `<span><b>${inf.name}</b>는 지금 움직일 수 없어요 😅<br>${inCheck(S) ? '보스가 체크 상태야! 보스를 먼저 지켜줘!' : '다른 캐릭터를 골라봐!'}</span>`, p.t);
+    if(selMoves.length) say(p.c, `<span><b>${inf.name}</b> · ${inf.say}</span>`, p.t, where);
+    else say(p.c, `<span><b>${inf.name}</b>는 지금 못 움직여요 😅 ${inCheck(S) ? '보스를 먼저 지켜줘!' : '다른 친구를 골라봐!'}</span>`, p.t, where);
     render();
   } else {
-    if(p){ SFX.oops(); say(p.c, `<span>나는 ${TEAM[p.c].name} <b>${INFO[p.t].name}</b>!<br>${TEAM[S.turn].name} 캐릭터를 골라줘~</span>`, p.t); }
+    if(p){ SFX.oops(); say(p.c, `<span>나는 ${TEAM[p.c].name} <b>${INFO[p.t].name}</b>! ${TEAM[S.turn].name} 캐릭터를 골라줘~</span>`, p.t, where); }
     selected = -1; selMoves = []; render();
   }
 }
 
 function askPromo(m){
   pendingPromo = m;
-  const c = S.turn;
   $('promoRow').innerHTML = ['Q','R','B','N'].map(t =>
-    `<button data-t="${t}">${pieceSVG(t, c)}${INFO[t].name}</button>`).join('');
-  $('promo').classList.add('show');
+    `<button data-t="${t}">${pieceSVG(t, S.turn)}${INFO[t].name}</button>`).join('');
+  show('promo');
 }
 $('promoRow').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b || !pendingPromo) return;
   const m = Object.assign({}, pendingPromo, {promo:b.dataset.t});
-  pendingPromo = null; $('promo').classList.remove('show');
+  pendingPromo = null; hide('promo');
   doMove(m);
 });
 
-function doMove(m){
-  hist.push({ S, money:{...money}, caps:{w:caps.w.slice(), b:caps.b.slice()}, lastMove });
+/* ---------- 수 두기 ---------- */
+function resetLocal(){
+  S = newState(); hist = []; selected = -1; selMoves = []; lastMove = null; hintMove = null;
+  over = false; thinking = false; anim = null; floatMsg = null; pendingPromo = null;
+  money = {w:0,b:0}; caps = {w:[],b:[]}; gameToken++;
+}
+
+function applyMove(m, silent){
   const mover = S.turn, piece = S.board[m.from];
   const ns = makeMove(S, m);
   S = { board:ns.board, turn:ns.turn, castle:ns.castle, ep:ns.ep };
-  lastMove = {from:m.from, to:m.to}; anim = {from:m.from, to:m.to};
-  selected = -1; selMoves = []; hintMove = null;
+  lastMove = {from:m.from, to:m.to}; selected = -1; selMoves = []; hintMove = null;
+  if(ns.captured){ money[mover] += PRIZE[ns.captured.t]; caps[mover].push(ns.captured); }
+  if(mode==='online') online.applied++;
+  if(silent) return;
+  anim = {from:m.from, to:m.to};
   let msg = null;
   if(ns.captured){
     const prize = PRIZE[ns.captured.t];
-    money[mover] += prize; caps[mover].push(ns.captured);
     floatMsg = {sq:m.to, text:`탈락! +$${prize}`};
     SFX.coin();
-    msg = `<span><b>${INFO[ns.captured.t].name}</b> 탈락!! 💥<br>${teamLabel(mover)} 상금 <b>+$${prize}</b> 💰</span>`;
+    msg = `<span><b>${INFO[ns.captured.t].name}</b> 탈락!! 💥 ${esc(teamLabel(mover))} 상금 <b>+$${prize}</b> 💰</span>`;
   } else SFX.move();
   if(m.promo) msg = `<span>🎉 챌린저가 <b>${INFO[m.promo].name}</b>(으)로 변신했어!</span>`;
   if(m.castle) msg = `<span>🏰 캐슬링! 보스와 금고 지킴이가 자리를 바꿨어!</span>`;
-  checkEnd(mover, msg, m.promo || piece.t);
+  checkEnd(mover, msg, m.promo || (piece && piece.t));
+}
+
+function doMove(m){
+  if(mode!=='online') hist.push({ S, money:{...money}, caps:{w:caps.w.slice(), b:caps.b.slice()}, lastMove });
+  const n = online.applied;
+  applyMove(m, false);
   render();
-  if(!over && mode==='ai' && S.turn==='b') aiTurn();
+  if(mode==='online') sendMove(m, n);
+  else if(!over && mode==='ai' && S.turn==='b') aiTurn();
+}
+
+function gameEnd(){
+  if(!legalMoves(S).length)
+    return inCheck(S) ? {winner:opp(S.turn)} : {winner:null, msg:'스테일메이트! 움직일 곳이 없어서 무승부예요.'};
+  if(insufficient(S.board)) return {winner:null, msg:'보스만 남아서 더 이상 잡을 수 없어요. 무승부!'};
+  return null;
 }
 
 function checkEnd(mover, msg, ptype){
-  const moves = legalMoves(S), chk = inCheck(S);
-  if(!moves.length){
+  const e = gameEnd();
+  if(e){
     over = true;
-    if(chk) setTimeout(() => showResult(mover), 700);
-    else setTimeout(() => showResult(null, '스테일메이트! 움직일 곳이 없어서 무승부예요.'), 700);
-    say(mover, chk ? '<span>👑 <b>체크메이트!!</b> 챌린지 끝!</span>' : '<span>앗, 움직일 곳이 없어요! 무승부!</span>');
+    const tok = gameToken;
+    setTimeout(() => { if(tok===gameToken) showResult(e.winner, e.msg); }, 800);
+    say(mover, e.winner ? '<span>👑 <b>체크메이트!!</b> 챌린지 끝!</span>' : '<span>무승부! 🤝</span>');
     return;
   }
-  if(insufficient(S.board)){
-    over = true; setTimeout(() => showResult(null, '보스만 남아서 더 이상 잡을 수 없어요. 무승부!'), 700);
-    say(mover, '<span>보스들만 남았어! 무승부!</span>'); return;
-  }
-  if(chk){
+  if(inCheck(S)){
     SFX.check();
-    const victim = S.turn;
-    say(victim, `<span>⚠️ <b>체크!</b> ${teamLabel(victim)} 보스 비스트가 위험해!<br>보스를 지켜줘!</span>`);
+    say(S.turn, `<span>⚠️ <b>체크!</b> ${esc(teamLabel(S.turn))}의 보스 비스트가 위험해! 보스를 지켜줘!</span>`, 'K', 'top', 3500);
     return;
   }
   if(msg){ say(mover, msg, ptype); return; }
-  if(mode==='ai') say(S.turn, S.turn==='w' ? '<span>네 차례야! 어떤 캐릭터를 움직여 볼까? 🤔</span>' : '<span>컴퓨터가 생각 중... 🤖</span>');
-  else say(S.turn, `<span>${TEAM[S.turn].name} 차례! 💪</span>`);
+  if(mode==='online' && S.turn===myColor) say(myColor, '<span>내 차례! 💪</span>', 'K', 'top', 1400);
 }
 
 function aiTurn(){
   thinking = true; render();
+  const tok = gameToken;
   setTimeout(() => {
+    if(tok!==gameToken) return;
     const t0 = Date.now();
     const m = aiPick(S, level);
-    const wait = Math.max(0, 550 - (Date.now()-t0));
     setTimeout(() => {
+      if(tok!==gameToken) return;
       thinking = false;
       if(m && !over) doMove(m); else render();
-    }, wait);
+    }, Math.max(0, 550 - (Date.now()-t0)));
   }, 60);
 }
 
-function showResult(winner, drawMsg){
+/* ---------- 결과 ---------- */
+function showResult(winner, drawMsg, reason, quiet){
+  $('resNote').textContent = '';
+  $('resAgain').disabled = false; $('resAgain').textContent = '🔄 한 판 더!';
+  $('resHome').textContent = mode==='online' ? '🚪 나가기' : '🏠 처음으로';
   if(winner){
     $('resHero').innerHTML = pieceSVG('K', winner);
-    const human = mode==='ai' ? winner==='w' : true;
-    $('resTitle').textContent = mode==='ai' ? (winner==='w' ? '🏆 챌린지 우승!!' : '😭 아깝다! 컴퓨터 승리') : `🏆 ${TEAM[winner].name} 우승!!`;
-    $('resPrize').textContent = human ? '$1,000,000' : `$${(money[winner]+100000).toLocaleString()}`;
-    $('resMsg').textContent = human ? '상대 보스를 꼼짝 못하게 만들었어요! 최고의 챌린저! 🎉' : '괜찮아! 다시 도전하면 이길 수 있어! 💪';
-    if(human){ SFX.win(); confetti(); }
+    let iWon = true, title, msg;
+    if(mode==='ai'){ iWon = winner==='w'; title = iWon ? '🏆 챌린지 우승!!' : '😭 아깝다! 컴퓨터 승리'; }
+    else if(mode==='online'){ iWon = winner===myColor; title = iWon ? '🏆 챌린지 우승!!' : `😭 아깝다! ${oppName()} 승리`; }
+    else title = `🏆 ${TEAM[winner].name} 우승!!`;
+    msg = iWon ? '상대 보스를 꼼짝 못하게 만들었어요! 최고의 챌린저! 🎉' : '괜찮아! 다시 도전하면 이길 수 있어! 💪';
+    if(reason==='resign') msg = iWon ? '상대가 기권했어요! 🏳️' : '기권했어요. 다음엔 끝까지 해보자! 💪';
+    $('resTitle').textContent = title;
+    $('resPrize').textContent = iWon ? '$1,000,000' : `$${(money[winner]+100000).toLocaleString()}`;
+    $('resMsg').textContent = msg;
+    if(iWon && !quiet){ SFX.win(); confetti(); }
   } else {
-    $('resHero').innerHTML = pieceSVG('K','w') .replace('<svg','<svg style="width:110px;height:110px"') + pieceSVG('K','b').replace('<svg','<svg style="width:110px;height:110px"');
+    $('resHero').innerHTML = pieceSVG('K','w').replace('<svg','<svg style="width:100px;height:100px"') + pieceSVG('K','b').replace('<svg','<svg style="width:100px;height:100px"');
     $('resTitle').textContent = '🤝 무승부!';
     $('resPrize').textContent = '상금 반반!';
-    $('resMsg').textContent = drawMsg;
+    $('resMsg').textContent = drawMsg || '';
   }
-  $('result').classList.add('show');
+  hide('sheet'); hide('promo');
+  show('result');
+  updateRematchNote();
 }
 
 function confetti(){
@@ -807,40 +909,310 @@ function confetti(){
   }
 }
 
-/* ---------- 버튼 ---------- */
-$('btnUndo').onclick = () => {
+/* ---------- 시작 / 전체 화면 ---------- */
+function tryFullscreen(){
+  try{
+    const el = document.documentElement;
+    if(document.fullscreenEnabled && !document.fullscreenElement) el.requestFullscreen().catch(() => {});
+  }catch(e){}
+}
+function startLocal(m, lv){
+  stopOnline();
+  mode = m; if(lv!==undefined) level = lv;
+  flip = false; myColor = 'w';
+  resetLocal();
+  ['menu','result','sheet','lobby','wait'].forEach(hide);
+  render();
+  say('w', mode==='ai' ? '<span>챌린지 시작! 파란 팀인 네가 먼저야 👆</span>' : '<span>챌린지 시작! 파란 팀 먼저! 👆</span>');
+  tryFullscreen();
+}
+function goHome(){
+  stopOnline(); gameToken++; thinking = false;
+  ['result','sheet','lobby','wait'].forEach(hide);
+  hide('levels'); show('menu');
+}
+
+/* =========================================================
+   온라인 대결 (Apps Script 또는 PC 서버 server.py)
+   ========================================================= */
+const net = (() => {
+  if(window.google && google.script && google.script.run){
+    return { ok:true, kind:'gas', call:(a, p) => new Promise((res, rej) => {
+      google.script.run
+        .withSuccessHandler(s => { let d; try{ d = JSON.parse(s); }catch(e){ return rej(new Error('응답 오류')); } d.error ? rej(new Error(d.error)) : res(d); })
+        .withFailureHandler(e => rej(e instanceof Error ? e : new Error(String(e))))
+        .api(a, p || {});
+    })};
+  }
+  if(/^https?:$/.test(location.protocol)){
+    return { ok:true, kind:'http', call:(a, p) =>
+      fetch('api/' + a, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p || {})})
+        .then(r => { if(!r.ok) throw new Error('server.py로 실행해야 온라인 대결을 할 수 있어요'); return r.json(); })
+        .then(d => { if(d.error) throw new Error(d.error); return d; })
+    };
+  }
+  return { ok:false, kind:'none', call:() => Promise.reject(new Error('파일을 직접 열었을 때는 온라인 대결을 할 수 없어요. server.py나 Apps Script 주소로 열어주세요!')) };
+})();
+
+const online = { code:null, pid:null, room:null, applied:0, gid:null, timer:null, lobbyTimer:null, sending:false, fail:0, leftShown:false, confirmT:null };
+online.pid = store.get('bc_pid', true);
+if(!online.pid){ online.pid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); store.set('bc_pid', online.pid, true); }
+
+function randomNick(){ return '챌린저' + Math.floor(10 + Math.random()*90); }
+function getNick(){
+  const v = $('nick').value.trim().slice(0, 8) || randomNick();
+  $('nick').value = v; store.set('bc_nick', v); return v;
+}
+
+function openLobby(){
+  hide('menu'); show('lobby');
+  $('nick').value = store.get('bc_nick') || randomNick();
+  $('netMsg').textContent = net.ok ? '' : '⚠️ 파일을 직접 열면 온라인 대결이 안 돼요. server.py 또는 Apps Script 주소로 열어주세요.';
+  refreshRooms();
+}
+function refreshRooms(){
+  clearTimeout(online.lobbyTimer);
+  if(!$('lobby').classList.contains('show')) return;
+  if(!net.ok){ $('roomList').innerHTML = '<div class="empty">온라인 연결 없음</div>'; return; }
+  net.call('list', {}).then(d => {
+    const rooms = (d.rooms || []);
+    $('roomList').innerHTML = rooms.length ? rooms.map(r => `
+      <div class="room">${pieceSVG('K','w')}<div class="rn">${esc(r.name)}의 방<small>방 번호 ${esc(r.code)}</small></div>
+      <button class="btn btn-green" data-code="${esc(r.code)}">들어가기</button></div>`).join('')
+      : '<div class="empty">아직 열린 방이 없어요.<br>새 방을 만들고 친구를 기다려 보세요!</div>';
+  }).catch(e => { $('netMsg').textContent = '⚠️ ' + e.message; })
+    .finally(() => { online.lobbyTimer = setTimeout(refreshRooms, 2000); });
+}
+function lobbyBusy(b){ ['lCreate','lJoin'].forEach(id => $(id).disabled = b); $('roomList').style.pointerEvents = b ? 'none' : ''; }
+function createRoom(){
+  tryFullscreen();
+  lobbyBusy(true); $('netMsg').textContent = '';
+  net.call('create', {pid:online.pid, name:getNick()})
+    .then(d => enterRoom(d.room))
+    .catch(e => { $('netMsg').textContent = '⚠️ ' + e.message; })
+    .finally(() => lobbyBusy(false));
+}
+function joinRoom(code){
+  code = String(code || '').trim();
+  if(!/^\d{4}$/.test(code)){ $('netMsg').textContent = '방 번호 4자리를 입력해 주세요!'; return; }
+  tryFullscreen();
+  lobbyBusy(true); $('netMsg').textContent = '';
+  net.call('join', {code, pid:online.pid, name:getNick()})
+    .then(d => enterRoom(d.room))
+    .catch(e => { $('netMsg').textContent = '⚠️ ' + e.message; })
+    .finally(() => lobbyBusy(false));
+}
+function enterRoom(room){
+  clearTimeout(online.lobbyTimer);
+  online.code = room.code; online.room = null; online.gid = null; online.applied = 0; online.leftShown = false; online.fail = 0;
+  store.set('bc_room', room.code, true);
+  hide('lobby'); hide('menu');
+  handleRoom(room);
+  poll();
+}
+function stopOnline(){
+  clearTimeout(online.timer); clearTimeout(online.lobbyTimer);
+  online.code = null; online.room = null; online.gid = null; online.applied = 0; online.sending = false;
+  store.del('bc_room', true);
+  if(mode==='online'){ mode = 'pvp'; flip = false; myColor = 'w'; }
+}
+function leaveOnline(){
+  if(online.code) net.call('leave', {code:online.code, pid:online.pid}).catch(() => {});
+  goHome();
+}
+
+function poll(){
+  clearTimeout(online.timer);
+  const code = online.code;
+  if(!code) return;
+  net.call('get', {code, pid:online.pid}).then(d => {
+    online.fail = 0;
+    if(!online.sending) handleRoom(d.room);
+  }).catch(e => {
+    if(online.code!==code) return;
+    if(/사라졌/.test(e.message)){ goHome(); return; }
+    online.fail++;
+    if(online.fail===4) say(myColor, '<span>📡 연결이 불안정해요… 다시 연결하는 중</span>');
+  }).finally(() => {
+    if(online.code===code) online.timer = setTimeout(poll, net.kind==='gas' ? 700 : 500);
+  });
+}
+
+function resolveMove(m){
+  const found = legalMoves(S, m.from).find(x => x.to===m.to);
+  if(!found) return null;
+  return m.promo ? Object.assign({}, found, {promo:m.promo}) : found;
+}
+
+function handleRoom(room){
+  if(!room || !online.code || room.code!==online.code) return;
+  if(online.room && room.ver < online.room.ver) return;
+  online.room = room;
+  if(room.status==='waiting'){
+    $('waitCode').textContent = room.code; show('wait'); return;
+  }
+  hide('wait');
+  const P = room.players || {};
+  const me = P.w && P.w.pid===online.pid ? 'w' : (P.b && P.b.pid===online.pid ? 'b' : null);
+  if(!me){ goHome(); return; }
+
+  if(online.gid!==room.gid || online.applied > room.moves.length){
+    // 새 게임 시작(또는 다시 맞추기): 처음부터 다시 재생
+    const fresh = online.gid!==room.gid;
+    mode = 'online'; myColor = me; flip = me==='b';
+    resetLocal(); online.applied = 0; online.gid = room.gid;
+    for(const raw of room.moves){ const m = resolveMove(raw); if(!m) break; applyMove(m, true); }
+    ['menu','lobby','wait','result','sheet','promo'].forEach(hide);
+    render();
+    const e = gameEnd();
+    if(e){ over = true; render(); showResult(e.winner, e.msg, null, true); }
+    else if(fresh && room.moves.length===0){
+      SFX.win();
+      say(me, `<span>게임 시작! 너는 <b>${TEAM[me].name}</b>이야! ${me==='w' ? '네가 먼저 시작해 👆' : '상대가 먼저 시작해. 기다려줘 ⏳'}</span>`, 'K', 'top', 4000);
+    }
+  } else if(online.applied < room.moves.length){
+    const pending = room.moves.slice(online.applied);
+    for(let k=0; k<pending.length; k++){
+      const m = resolveMove(pending[k]);
+      if(!m){ online.gid = null; return handleRoom(room); }
+      applyMove(m, k < pending.length-1);
+    }
+    render();
+  }
+
+  if(room.status==='over' && room.result && !over){
+    over = true; render(); showResult(room.result.winner, null, room.result.reason);
+  }
+  if(room.status==='left' && room.leftBy!==online.pid && !online.leftShown){
+    online.leftShown = true; over = true; render();
+    $('resHero').innerHTML = pieceSVG('K', opp(myColor));
+    $('resTitle').textContent = '👋 상대가 나갔어요';
+    $('resPrize').textContent = '';
+    $('resMsg').textContent = '다른 친구와 새 방에서 다시 해봐요!';
+    $('resNote').textContent = '';
+    $('resAgain').disabled = true; $('resHome').textContent = '🚪 나가기';
+    hide('sheet'); show('result');
+  }
+  updateRematchNote();
+  renderBars();
+}
+
+function sendMove(m, n){
+  online.sending = true;
+  net.call('move', {code:online.code, pid:online.pid, gid:online.gid, n, move:{from:m.from, to:m.to, promo:m.promo || null}})
+    .then(d => { online.sending = false; handleRoom(d.room); })
+    .catch(e => {
+      online.sending = false;
+      say(myColor, '<span>앗, 전송이 안 됐어요! 다시 맞추는 중… 🔄</span>');
+      online.gid = null; online.room = null; poll();
+    });
+}
+
+function updateRematchNote(){
+  if(mode!=='online' || !online.room || !$('result').classList.contains('show')) return;
+  const rm = online.room.rematch || {};
+  const mine = !!rm[online.pid], theirs = Object.keys(rm).some(p => p!==online.pid);
+  if(online.room.status==='left') return;
+  if(mine){ $('resAgain').disabled = true; $('resAgain').textContent = '⏳ 기다리는 중'; }
+  $('resNote').textContent = theirs && !mine ? `🙋 ${oppName()}: "한 판 더 하자!"` : (mine ? '상대가 "한 판 더"를 누르면 시작해요!' : '');
+}
+
+/* ---------- 버튼 연결 ---------- */
+$('pBot').addEventListener('click', e => { if(e.target.closest('.menu-btn')) openSheet(); });
+
+function openSheet(){
+  const isOn = mode==='online';
+  $('sUndo').classList.toggle('hide', isOn);
+  $('sNew').classList.toggle('hide', isOn);
+  $('sResign').classList.toggle('hide', !isOn);
+  $('sFull').classList.toggle('hide', !document.fullscreenEnabled);
+  $('sHint').disabled = !canMove();
+  $('sUndo').disabled = !hist.length || thinking;
+  $('sResign').disabled = over;
+  $('sSound').textContent = soundOn ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
+  $('sFull').textContent = document.fullscreenElement ? '⛶ 전체 화면 끄기' : '⛶ 전체 화면';
+  $('sResign').textContent = '🏳️ 기권';
+  $('sHome').textContent = isOn ? '🚪 나가기' : '🏠 처음으로';
+  show('sheet');
+}
+function confirmTap(btn, label, fn){
+  if(btn.dataset.armed==='1'){ btn.dataset.armed = ''; fn(); return; }
+  const old = btn.textContent;
+  btn.dataset.armed = '1'; btn.textContent = label;
+  clearTimeout(online.confirmT);
+  online.confirmT = setTimeout(() => { btn.dataset.armed = ''; btn.textContent = old; }, 2500);
+}
+$('sClose').onclick = () => hide('sheet');
+$('sheet').addEventListener('click', e => { if(e.target.id==='sheet') hide('sheet'); });
+$('sHint').onclick = () => {
+  hide('sheet');
+  if(!canMove()) return;
+  const m = bestMove(S, 2, 0); if(!m) return;
+  hintMove = m; selected = -1; selMoves = [];
+  const p = S.board[m.from];
+  render();
+  say(S.turn, `<span>💡 반짝이는 <b>${INFO[p.t].name}</b>를 반짝이는 칸으로 움직여 봐!</span>`, p.t, 'top', 3500);
+};
+$('sUndo').onclick = () => {
   if(!hist.length || thinking) return;
   let h = hist.pop();
   if(mode==='ai' && h.S.turn==='b' && hist.length) h = hist.pop();
   S = h.S; money = h.money; caps = h.caps; lastMove = h.lastMove;
-  over = false; selected = -1; selMoves = []; hintMove = null;
-  $('result').classList.remove('show');
+  over = false; selected = -1; selMoves = []; hintMove = null; gameToken++;
+  hide('sheet'); hide('result');
   render(); say(S.turn, '<span>↩️ 되돌렸어! 다시 생각해 보자 🤔</span>');
 };
-$('btnHint').onclick = () => {
-  if(over || thinking || (mode==='ai' && S.turn!=='w')) return;
-  const m = bestMove(S, 2, 0);
-  if(!m) return;
-  hintMove = m; selected = -1; selMoves = [];
-  const p = S.board[m.from];
-  render();
-  say(S.turn, `<span>💡 반짝이는 <b>${INFO[p.t].name}</b>를<br>반짝이는 칸으로 움직여 봐!</span>`, p.t);
+$('sNew').onclick = () => startLocal(mode, level);
+$('sResign').onclick = function(){
+  confirmTap(this, '정말? 한 번 더 누르면 기권', () => {
+    hide('sheet');
+    online.sending = true;
+    net.call('resign', {code:online.code, pid:online.pid})
+      .then(d => { online.sending = false; handleRoom(d.room); })
+      .catch(() => { online.sending = false; });
+  });
 };
-$('btnNew').onclick = () => startGame(mode, level);
-$('btnHome').onclick = () => { $('levels').classList.remove('show'); $('menu').classList.add('show'); };
-$('btnSound').onclick = () => {
-  soundOn = !soundOn; $('btnSound').textContent = soundOn ? '🔊' : '🔇';
-  try{ localStorage.setItem('bc_sound', soundOn ? '1' : '0'); }catch(e){}
+$('sGuide').onclick = () => { hide('sheet'); show('guide'); };
+$('sSound').onclick = () => {
+  soundOn = !soundOn; store.set('bc_sound', soundOn ? '1' : '0');
+  $('sSound').textContent = soundOn ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
   if(soundOn) SFX.pick();
 };
-$('btnGuide').onclick = () => $('guide').classList.add('show');
-$('guideClose').onclick = () => $('guide').classList.remove('show');
-$('guide').addEventListener('click', e => { if(e.target.id==='guide') $('guide').classList.remove('show'); });
-$('mPvp').onclick = () => startGame('pvp');
-$('mAi').onclick = () => $('levels').classList.add('show');
-document.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => startGame('ai', +b.dataset.lv));
-$('resAgain').onclick = () => startGame(mode, level);
-$('resHome').onclick = () => { $('result').classList.remove('show'); $('levels').classList.remove('show'); $('menu').classList.add('show'); };
+$('sFull').onclick = () => {
+  try{ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }catch(e){}
+  hide('sheet');
+};
+$('sHome').onclick = function(){
+  if(mode==='online' && !over) confirmTap(this, '정말 나갈까요? 한 번 더!', leaveOnline);
+  else if(mode==='online') leaveOnline();
+  else goHome();
+};
+$('guideClose').onclick = () => hide('guide');
+$('guide').addEventListener('click', e => { if(e.target.id==='guide') hide('guide'); });
+
+$('mAi').onclick = () => $('levels').classList.toggle('show');
+$('mPvp').onclick = () => startLocal('pvp');
+$('mNet').onclick = openLobby;
+document.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => startLocal('ai', +b.dataset.lv));
+
+$('lCreate').onclick = createRoom;
+$('lJoin').onclick = () => joinRoom($('codeIn').value);
+$('codeIn').addEventListener('keydown', e => { if(e.key==='Enter') joinRoom($('codeIn').value); });
+$('codeIn').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4); });
+$('roomList').addEventListener('click', e => { const b = e.target.closest('[data-code]'); if(b) joinRoom(b.dataset.code); });
+$('lBack').onclick = () => { clearTimeout(online.lobbyTimer); hide('lobby'); show('menu'); };
+$('wCancel').onclick = leaveOnline;
+
+$('resAgain').onclick = () => {
+  if(mode!=='online'){ startLocal(mode, level); return; }
+  $('resAgain').disabled = true; $('resAgain').textContent = '⏳ 기다리는 중';
+  online.sending = true;
+  net.call('rematch', {code:online.code, pid:online.pid})
+    .then(d => { online.sending = false; handleRoom(d.room); })
+    .catch(e => { online.sending = false; $('resNote').textContent = '⚠️ ' + e.message; $('resAgain').disabled = false; $('resAgain').textContent = '🔄 한 판 더!'; });
+};
+$('resHome').onclick = () => { if(mode==='online') leaveOnline(); else goHome(); };
+$('resView').onclick = () => hide('result');
 
 $('guideList').innerHTML = ['K','Q','R','B','N','P'].map(t => `
   <div class="guide-item">${pieceSVG(t, t==='Q'||t==='N'||t==='P' ? 'b' : 'w')}
@@ -850,8 +1222,11 @@ $('guideList').innerHTML = ['K','Q','R','B','N','P'].map(t => `
   </div>`).join('');
 $('menuHero').innerHTML = pieceSVG('N','w') + pieceSVG('K','w') + pieceSVG('Q','b');
 
-S = newState(); hist = []; money = {w:0,b:0}; caps = {w:[],b:[]};
-render(); say('w', '챌린지 시작!');
+/* 처음 화면 */
+resetLocal(); render();
+/* 새로고침했을 때 하던 온라인 게임으로 돌아가기 */
+const savedRoom = store.get('bc_room', true);
+if(savedRoom && net.ok){ online.code = savedRoom; poll(); }
 </script>
 </body>
 </html>
