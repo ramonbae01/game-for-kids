@@ -265,6 +265,34 @@ input{font-family:inherit;color:var(--ink)}
 @media (orientation:landscape) and (min-aspect-ratio:5/4){ .bar .clock{font-size:26px;min-width:100px} }
 .room .rn small .tcb{background:var(--gold);border-radius:6px;padding:0 5px;margin-left:4px;color:var(--ink)}
 
+/* 시작 메뉴: 한 화면 맞춤 */
+.menu-card{padding:clamp(10px,2.2vh,20px) clamp(12px,3vw,20px) clamp(14px,2.4vh,22px)}
+.menu-card .menu-hero{gap:2px;margin:0}
+.menu-card .menu-hero svg{width:clamp(44px,9vh,70px);height:clamp(44px,9vh,70px)}
+.menu-card .menu-hero svg:nth-child(2){width:clamp(60px,12.5vh,96px);height:clamp(60px,12.5vh,96px);margin-top:calc(clamp(60px,12.5vh,96px) * -.18)}
+.menu-card .menu-title{font-size:clamp(24px,min(8.4vw,5.6vh),42px);line-height:1.1;margin:4px 0 clamp(8px,1.8vh,14px);white-space:nowrap}
+.menu-card .mode-grid{grid-template-columns:repeat(3,1fr);gap:8px;margin:0}
+.menu-card .mode{padding:clamp(8px,1.6vh,14px) 4px;font-size:clamp(15px,4.3vw,20px);border-radius:18px;line-height:1.2}
+.menu-card .mode .em{font-size:clamp(28px,5.2vh,42px);margin-bottom:2px}
+.menu-card .mode small{font-size:clamp(11px,3vw,13px)}
+.menu-card .levels{margin:0}
+.menu-card.lv .mode-grid{display:none}
+.lv-head{display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;margin:0 0 8px;position:relative}
+.lv-back{position:absolute;left:0;width:38px;height:38px;border-radius:12px;background:#fff;border:3px solid var(--ink);font-size:18px;box-shadow:0 3px 0 var(--ink)}
+.menu-card .level-row .btn{padding:clamp(8px,1.6vh,14px) 4px;font-size:clamp(15px,4.2vw,19px)}
+.menu-card .tc-row{margin:clamp(10px,2vh,16px) 0 clamp(10px,2vh,14px)}
+.menu-card .menu-row{display:flex;gap:8px;margin:0}
+.menu-card .menu-row .btn{flex:1;min-width:0;font-size:clamp(14px,3.9vw,18px);padding:clamp(8px,1.5vh,12px) 4px;line-height:1.15;white-space:nowrap}
+.menu-card .menu-row .btn small{font-size:11px}
+/* 가로로 눕힌 휴대폰: 제목은 왼쪽, 버튼은 오른쪽 */
+@media (orientation:landscape) and (max-height:560px){
+  .menu-card{max-width:820px;display:grid;grid-template-columns:.8fr 1.2fr;gap:16px;align-items:center}
+  .menu-card .menu-title{white-space:normal;font-size:clamp(22px,7vh,34px)}
+  .menu-card .menu-hero svg{width:clamp(40px,14vh,70px);height:clamp(40px,14vh,70px)}
+  .menu-card .menu-hero svg:nth-child(2){width:clamp(54px,19vh,96px);height:clamp(54px,19vh,96px)}
+  .menu-card .mode .em{font-size:clamp(22px,7vh,36px)}
+}
+
 /* 메뉴 시트 */
 .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 12px}
 .sheet-grid .btn{font-size:18px;padding:14px 6px}
@@ -303,29 +331,32 @@ input{font-family:inherit;color:var(--ink)}
   <div class="bar w" id="pBot"></div>
 </div>
 
-<!-- 시작 메뉴 -->
+<!-- 시작 메뉴 (한 화면에 다 들어오게) -->
 <div class="overlay show" id="menu">
-  <div class="card">
-    <div class="menu-hero" id="menuHero"></div>
-    <div class="menu-title"><span class="bb">BEAST</span> <span class="pp">챌린지</span><br>체스</div>
-    <p>보스 비스트를 지켜라! 마지막까지 살아남는 팀이 상금을 가져가요 💰</p>
-    <div class="mode-grid">
-      <button class="mode ai" id="mAi"><span class="em">🤖</span>컴퓨터랑<small>나는 파란 팀!</small></button>
-      <button class="mode pvp" id="mPvp"><span class="em">👫</span>둘이서 하기<small>번갈아 가며 두기</small></button>
-      <button class="mode net" id="mNet"><span class="em">🌐</span>다른 기기랑<small>친구 폰·태블릿과 대결</small></button>
+  <div class="card menu-card" id="menuCard">
+    <div class="menu-top">
+      <div class="menu-hero" id="menuHero"></div>
+      <div class="menu-title"><span class="bb">BEAST</span> <span class="pp">챌린지</span> 체스</div>
     </div>
-    <div class="tc-row" id="tcMenu"></div>
-    <div class="menu-row">
-      <button class="btn btn-yellow" id="mPick">🎨 캐릭터 고르기</button>
-      <button class="btn btn-white" id="mRec">🏆 내 기록</button>
-    </div>
-    <button class="btn btn-green wide app-btn" id="mApp">📱 안드로이드 앱 설치하기</button>
-    <div class="levels" id="levels">
-      <p style="margin:6px 0 10px">컴퓨터 실력을 골라요!</p>
-      <div class="level-row">
-        <button class="btn btn-green" data-lv="0">🐣 쉬움<small>처음 해봐요</small></button>
-        <button class="btn btn-yellow" data-lv="1">😎 보통<small>조금 해봤어요</small></button>
-        <button class="btn btn-pink" data-lv="2">🔥 어려움<small>자신 있어요</small></button>
+    <div class="menu-main">
+      <div class="mode-grid" id="modeGrid">
+        <button class="mode ai" id="mAi"><span class="em">🤖</span>컴퓨터랑<small>나는 파란 팀</small></button>
+        <button class="mode pvp" id="mPvp"><span class="em">👫</span>둘이서<small>한 화면에서</small></button>
+        <button class="mode net" id="mNet"><span class="em">🌐</span>다른 기기랑<small>친구 폰과</small></button>
+      </div>
+      <div class="levels" id="levels">
+        <div class="lv-head"><button class="lv-back" id="lvBack" aria-label="뒤로">←</button>🤖 컴퓨터 실력을 골라요!</div>
+        <div class="level-row">
+          <button class="btn btn-green" data-lv="0">🐣 쉬움<small>처음 해봐요</small></button>
+          <button class="btn btn-yellow" data-lv="1">😎 보통<small>조금 해봤어요</small></button>
+          <button class="btn btn-pink" data-lv="2">🔥 어려움<small>자신 있어요</small></button>
+        </div>
+      </div>
+      <div class="tc-row" id="tcMenu"></div>
+      <div class="menu-row">
+        <button class="btn btn-yellow" id="mPick">🎨 캐릭터</button>
+        <button class="btn btn-white" id="mRec">🏆 내 기록</button>
+        <button class="btn btn-green" id="mApp">📱 앱 설치</button>
       </div>
     </div>
   </div>
@@ -1206,7 +1237,7 @@ function startLocal(m, lv){
 function goHome(){
   stopOnline(); gameToken++; thinking = false;
   ['result','sheet','lobby','wait'].forEach(hide);
-  hide('levels'); updateMenuRec(); show('menu');
+  showLevels(false); updateMenuRec(); show('menu');
 }
 
 /* =========================================================
@@ -1486,7 +1517,9 @@ $('sHome').onclick = function(){
 $('guideClose').onclick = () => hide('guide');
 $('guide').addEventListener('click', e => { if(e.target.id==='guide') hide('guide'); });
 
-$('mAi').onclick = () => $('levels').classList.toggle('show');
+function showLevels(on){ $('menuCard').classList.toggle('lv', on); $('levels').classList.toggle('show', on); }
+$('mAi').onclick = () => showLevels(true);
+$('lvBack').onclick = () => showLevels(false);
 $('mPvp').onclick = () => startLocal('pvp');
 $('mNet').onclick = openLobby;
 document.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => startLocal('ai', +b.dataset.lv));
@@ -1830,7 +1863,7 @@ $('recReset').onclick = function(){
   confirmTap(this, '정말 지울까요? 한 번 더!', () => { REC = blankRec(); saveRec(); openRecords(recFrom); });
 };
 function updateMenuRec(){
-  $('mRec').innerHTML = `🏆 내 기록<small>${REC.total.w}승 · $${REC.prize >= 1e6 ? (REC.prize/1e6).toFixed(1) + 'M' : REC.prize.toLocaleString()}</small>`;
+  $('mRec').innerHTML = '🏆 내 기록';
 }
 $('mRec').onclick = () => openRecords('menu');
 /* 앱 설치 안내 (앱 안에서는 숨김) */
@@ -1932,7 +1965,7 @@ window.__androidBack = function(){
   if(on('lobby')){ $('lBack').onclick(); return true; }
   if(on('wait')){ leaveOnline(); return true; }
   if(on('menu')){
-    if($('levels').classList.contains('show')){ hide('levels'); return true; }
+    if($('levels').classList.contains('show')){ showLevels(false); return true; }
     return false;
   }
   if(on('result')){ $('resHome').onclick(); return true; }
