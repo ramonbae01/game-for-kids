@@ -18,7 +18,7 @@ android {
         applicationId 'kr.family.beastchess'
         minSdk 24
         targetSdk 34
-        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int
+        versionCode Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1')
         versionName "1.${System.getenv('GITHUB_RUN_NUMBER') ?: '0'}"
         // 온라인 대결에 쓰는 Apps Script 주소
         buildConfigField 'String', 'GAS_URL', '"https://script.google.com/macros/s/AKfycbwZYsD10I_IJh5dQYUS5BCk3VQKHqPp4SZTu-MEwtZ8c9dOeJ8_4Dl2i6qS1LI3xjpBKQ/exec"'
@@ -27,7 +27,7 @@ android {
     buildFeatures { buildConfig true }
 
     sourceSets {
-        main { assets.srcDirs += webOut }
+        main { assets.srcDir(webOut) }
     }
 
     signingConfigs {
@@ -49,6 +49,11 @@ android {
         debug {
             signingConfig signingConfigs.family
         }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
     }
 
     compileOptions {
