@@ -62,12 +62,42 @@ def touch(code, pid):
 def pub(r):
     now = time.time()
     out = json.loads(json.dumps(r))
+    out['now'] = now_ms()
     out['seen'] = {}
     for c in ('w', 'b'):
         p = r['players'][c]
         t = SEEN.get((r['code'], p['pid'])) if p else None
         out['seen'][c] = round(now - t) if t else None
     return out
+
+
+TC_OK = (0, 180, 300, 600)
+
+
+def now_ms():
+    return time.time() * 1000
+
+
+def fresh_clock(r):
+    return {'w': r['tc'] * 1000, 'b': r['tc'] * 1000, 'start': now_ms()} if r.get('tc') else None
+
+
+def turn_of(r):
+    return 'w' if len(r['moves']) % 2 == 0 else 'b'
+
+
+def check_flag(r):
+    """시간이 다 된 쪽이 있으면 게임 종료. 끝났으면 True"""
+    ck = r.get('clock')
+    if not ck or r['status'] != 'playing':
+        return False
+    t = turn_of(r)
+    if ck[t] - (now_ms() - ck['start']) <= 0:
+        ck[t] = 0
+        r['status'] = 'over'
+        r['result'] = {'winner': 'b' if t == 'w' else 'w', 'reason': 'time'}
+        return True
+    return False
 
 
 def must_room(code):
@@ -86,7 +116,8 @@ def handle(a, p):
 
         if a == 'list':
             rooms = [{'code': r['code'], 'name': r['players']['w']['name'],
-                      'king': (r['players']['w'].get('skin') or {}).get('K')}
+                      'king': (r['players']['w'].get('skin') or {}).get('K'),
+                      'tc': r.get('tc') or 0}
                      for r in ROOMS.values()
                      if r['status'] == 'waiting' and now - r['updated'] < LIST_AGE]
             return {'rooms': rooms[::-1]}
@@ -99,7 +130,8 @@ def handle(a, p):
             r = {'code': code, 'gid': 1, 'ver': 0, 'status': 'waiting', 'updated': now,
                  'players': {'w': {'pid': pid, 'name': clean_name(p.get('name')),
                                    'skin': clean_skin(p.get('skin'))}, 'b': None},
-                 'moves': [], 'result': None, 'rematch': {}}
+                 'moves': [], 'result': None, 'rematch': {}, 'clock': None,
+                 'tc': int(p.get('tc') or 0) if int(p.get('tc') or 0) in TC_OK else 0}
             bump(r)
             ROOMS[code] = r
             touch(code, pid)
@@ -115,6 +147,7 @@ def handle(a, p):
                 r['players']['b'] = {'pid': pid, 'name': clean_name(p.get('name')),
                                      'skin': clean_skin(p.get('skin'))}
                 r['status'] = 'playing'
+                r['clock'] = fresh_clock(r)
                 bump(r)
             touch(r['code'], pid)
             return {'room': pub(r)}
@@ -140,10 +173,22 @@ def handle(a, p):
             if not (0 <= fr < 64 and 0 <= to < 64):
                 raise ApiError('잘못된 수예요')
             promo = m.get('promo') if m.get('promo') in ('Q', 'R', 'B', 'N') else None
+            if check_flag(r):  # 시간 초과로 이미 짐
+                bump(r)
+                return {'room': pub(r)}
+            if r.get('clock'):
+                r['clock'][c] -= now_ms() - r['clock']['start']
+                r['clock']['start'] = now_ms()
             r['moves'].append({'from': fr, 'to': to, 'promo': promo})
             r['rematch'] = {}
             bump(r)
             touch(r['code'], pid)
+            return {'room': pub(r)}
+
+        if a == 'flag':
+            r = must_room(p.get('code'))
+            if check_flag(r):
+                bump(r)
             return {'room': pub(r)}
 
         if a == 'resign':
@@ -170,6 +215,7 @@ def handle(a, p):
                 r['status'] = 'playing'
                 r['result'] = None
                 r['rematch'] = {}
+                r['clock'] = fresh_clock(r)
             bump(r)
             return {'room': pub(r)}
 

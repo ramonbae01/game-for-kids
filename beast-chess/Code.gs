@@ -76,7 +76,25 @@ function pub_(r) {
   });
   var out = JSON.parse(JSON.stringify(r));
   out.seen = seen;
+  out.now = Date.now();
   return out;
+}
+var TC_OK_ = [0, 180, 300, 600];
+function freshClock_(r) {
+  return r.tc ? { w: r.tc * 1000, b: r.tc * 1000, start: Date.now() } : null;
+}
+function turnOf_(r) { return r.moves.length % 2 === 0 ? 'w' : 'b'; }
+/* 시간이 다 된 쪽이 있으면 게임 종료. 끝났으면 true */
+function checkFlag_(r) {
+  if (!r.clock || r.status !== 'playing') return false;
+  var t = turnOf_(r);
+  if (r.clock[t] - (Date.now() - r.clock.start) <= 0) {
+    r.clock[t] = 0;
+    r.status = 'over';
+    r.result = { winner: t === 'w' ? 'b' : 'w', reason: 'time' };
+    return true;
+  }
+  return false;
 }
 function mustRoom_(code) {
   var r = getRoom_(String(code));
@@ -95,7 +113,7 @@ function handle_(a, p) {
         if (!s) return;
         var r = JSON.parse(s);
         if (r.status === 'waiting' && Date.now() - r.updated < LIST_AGE_MS_)
-          rooms.push({ code: r.code, name: r.players.w.name, king: (r.players.w.skin || {}).K || null });
+          rooms.push({ code: r.code, name: r.players.w.name, king: (r.players.w.skin || {}).K || null, tc: r.tc || 0 });
       });
       return { rooms: rooms.reverse() };
     }
@@ -105,7 +123,8 @@ function handle_(a, p) {
         do { code = String(1000 + Math.floor(Math.random() * 9000)); } while (getRoom_(code));
         var r = { code: code, gid: 1, ver: 0, status: 'waiting',
                   players: { w: { pid: String(p.pid), name: cleanName_(p.name), skin: cleanSkin_(p.skin) }, b: null },
-                  moves: [], result: null, rematch: {} };
+                  moves: [], result: null, rematch: {},
+                  tc: TC_OK_.indexOf(Number(p.tc)) >= 0 ? Number(p.tc) : 0, clock: null };
         putRoom_(r);
         var codes = JSON.parse(cache_().get('rooms') || '[]');
         var alive = codes.length ? cache_().getAll(codes.map(function (c) { return 'room_' + c; })) : {};
@@ -123,6 +142,7 @@ function handle_(a, p) {
           if (r.status !== 'waiting' || r.players.b) throw new Error('이미 게임 중인 방이에요');
           r.players.b = { pid: String(p.pid), name: cleanName_(p.name), skin: cleanSkin_(p.skin) };
           r.status = 'playing';
+          r.clock = freshClock_(r);
           putRoom_(r);
         }
         touch_(r.code, p.pid);
@@ -145,10 +165,18 @@ function handle_(a, p) {
         var from = Number(m.from), to = Number(m.to);
         if (!(from >= 0 && from < 64 && to >= 0 && to < 64)) throw new Error('잘못된 수예요');
         var promo = /^[QRBN]$/.test(m.promo || '') ? m.promo : null;
+        if (checkFlag_(r)) { putRoom_(r); return { room: pub_(r) }; }   // 시간 초과로 이미 짐
+        if (r.clock) { r.clock[c] -= Date.now() - r.clock.start; r.clock.start = Date.now(); }
         r.moves.push({ from: from, to: to, promo: promo });
         r.rematch = {};
         putRoom_(r);
         touch_(r.code, p.pid);
+        return { room: pub_(r) };
+      });
+    case 'flag':
+      return withLock_(function () {
+        var r = mustRoom_(p.code);
+        if (checkFlag_(r)) putRoom_(r);
         return { room: pub_(r) };
       });
     case 'resign':
@@ -171,6 +199,7 @@ function handle_(a, p) {
         if (r.players.w && r.players.b && r.rematch[r.players.w.pid] && r.rematch[r.players.b.pid]) {
           var t = r.players.w; r.players.w = r.players.b; r.players.b = t;   // 색 바꾸기
           r.gid += 1; r.moves = []; r.status = 'playing'; r.result = null; r.rematch = {};
+          r.clock = freshClock_(r);
         }
         putRoom_(r);
         return { room: pub_(r) };

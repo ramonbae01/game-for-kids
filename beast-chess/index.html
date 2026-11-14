@@ -250,6 +250,21 @@ input{font-family:inherit;color:var(--ink)}
 .steps{text-align:left;font-size:15px;line-height:1.6;background:#f5f8ff;border:2px solid #dfe4f2;border-radius:14px;padding:10px 14px;margin:10px 0 12px}
 .steps b{color:var(--pink-d);font-weight:normal}
 
+/* 체스 시계 */
+.tc-row{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:12px 0 2px;font-size:16px}
+.tc-row span{margin-right:2px}
+.tc-row .tc{font-size:16px;padding:6px 12px;border-radius:999px;border:3px solid var(--ink);background:#fff;box-shadow:0 3px 0 var(--ink)}
+.tc-row .tc.on{background:var(--gold);transform:translateY(1px);box-shadow:0 2px 0 var(--ink)}
+.bar .clock{font-family:'Black Han Sans',sans-serif;font-size:19px;min-width:62px;text-align:center;padding:2px 6px;border-radius:10px;
+  background:#eef0f5;border:2px solid #b9c0d6;color:#6b7390;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bar.active .clock{background:var(--ink);border-color:var(--ink);color:#fff}
+.bar .clock.low{background:#ff3b5c !important;border-color:#b0102e !important;color:#fff !important;animation:pulse .6s ease-in-out infinite}
+.bar .clock.out{background:#b0102e !important;color:#fff !important}
+@media (max-width:420px){ .bar .money{font-size:15px;padding:1px 5px} .bar .clock{font-size:17px;min-width:54px}
+  .tc-row{gap:4px;font-size:14px} .tc-row .tc{font-size:14px;padding:5px 9px} }
+@media (orientation:landscape) and (min-aspect-ratio:5/4){ .bar .clock{font-size:26px;min-width:100px} }
+.room .rn small .tcb{background:var(--gold);border-radius:6px;padding:0 5px;margin-left:4px;color:var(--ink)}
+
 /* 메뉴 시트 */
 .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 12px}
 .sheet-grid .btn{font-size:18px;padding:14px 6px}
@@ -299,6 +314,7 @@ input{font-family:inherit;color:var(--ink)}
       <button class="mode pvp" id="mPvp"><span class="em">👫</span>둘이서 하기<small>번갈아 가며 두기</small></button>
       <button class="mode net" id="mNet"><span class="em">🌐</span>다른 기기랑<small>친구 폰·태블릿과 대결</small></button>
     </div>
+    <div class="tc-row" id="tcMenu"></div>
     <div class="menu-row">
       <button class="btn btn-yellow" id="mPick">🎨 캐릭터 고르기</button>
       <button class="btn btn-white" id="mRec">🏆 내 기록</button>
@@ -321,6 +337,7 @@ input{font-family:inherit;color:var(--ink)}
     <h2>🌐 다른 기기랑 대결</h2>
     <div class="field"><label for="nick">내 이름</label><input id="nick" maxlength="8" autocomplete="off" placeholder="이름"></div>
     <div class="myset"><span style="font-size:15px;white-space:nowrap">내 캐릭터</span><div class="mini" id="mySetMini"></div><button class="btn btn-yellow" id="lPick">🎨 바꾸기</button></div>
+    <div class="tc-row" id="tcLobby" style="margin:4px 0 10px"></div>
     <button class="btn btn-blue wide" id="lCreate">🏠 새 방 만들기</button>
     <div class="sub">👇 친구가 만든 방에 들어가기</div>
     <div class="room-list" id="roomList"><div class="empty">방을 찾는 중…</div></div>
@@ -875,7 +892,11 @@ const store = {
 
 let S, hist = [], mode = 'ai', level = 0, selected = -1, selMoves = [], lastMove = null, hintMove = null,
     over = false, money = {w:0,b:0}, caps = {w:[],b:[]}, thinking = false, anim = null, pendingPromo = null,
-    floatMsg = null, myColor = 'w', flip = false, gameToken = 0, pendingFx = null, recordedFor = -1;
+    floatMsg = null, myColor = 'w', flip = false, gameToken = 0, pendingFx = null, recordedFor = -1,
+    clock = null, clockLast = performance.now();
+const TC_OPTIONS = [0, 180, 300, 600];
+let tcSetting = +(store.get('bc_tc') || 0);
+if(!TC_OPTIONS.includes(tcSetting)) tcSetting = 0;
 
 soundOn = store.get('bc_sound') !== '0';
 
@@ -946,6 +967,7 @@ function renderBar(el, c, isBottom){
   el.innerHTML = `<div class="av">${pieceSVG('K', c)}</div>
     <div class="info"><div class="nm">${esc(teamLabel(c))}${conn}</div><div class="caps">${capsHtml}</div></div>
     <div class="money">$${money[c].toLocaleString()}</div>
+    ${clockMs(c) !== null ? `<div class="clock" data-c="${c}">${fmtClock(clockMs(c))}</div>` : ''}
     ${badge ? `<div class="turn-badge">${badge}</div>` : ''}
     ${isBottom ? '<button class="menu-btn" aria-label="메뉴">☰</button>' : ''}`;
 }
@@ -1037,7 +1059,7 @@ $('promoRow').addEventListener('click', e => {
 /* ---------- 수 두기 ---------- */
 function resetLocal(){
   S = newState(); hist = []; selected = -1; selMoves = []; lastMove = null; hintMove = null;
-  over = false; thinking = false; anim = null; floatMsg = null; pendingPromo = null; pendingFx = null;
+  over = false; thinking = false; anim = null; floatMsg = null; pendingPromo = null; pendingFx = null; clock = null;
   money = {w:0,b:0}; caps = {w:[],b:[]}; gameToken++;
 }
 
@@ -1063,7 +1085,12 @@ function applyMove(m, silent){
 }
 
 function doMove(m){
-  if(mode!=='online') hist.push({ S, money:{...money}, caps:{w:caps.w.slice(), b:caps.b.slice()}, lastMove });
+  if(mode!=='online') hist.push({ S, money:{...money}, caps:{w:caps.w.slice(), b:caps.b.slice()}, lastMove, clock: clock ? {...clock} : null });
+  if(mode==='online' && online.room && online.room.clock){
+    // 내 시계를 바로 멈춰 보이게 (서버 응답 전까지)
+    const est = Date.now() + online.offset, ck = online.room.clock;
+    ck[S.turn] -= est - ck.start; ck.start = est;
+  }
   const n = online.applied;
   applyMove(m, false);
   render();
@@ -1124,6 +1151,10 @@ function showResult(winner, drawMsg, reason, quiet){
     else title = `🏆 ${TEAM[winner].name} 우승!!`;
     msg = iWon ? '상대 보스를 꼼짝 못하게 만들었어요! 최고의 챌린저! 🎉' : '괜찮아! 다시 도전하면 이길 수 있어! 💪';
     if(reason==='resign') msg = iWon ? '상대가 기권했어요! 🏳️' : '기권했어요. 다음엔 끝까지 해보자! 💪';
+    if(reason==='time'){
+      if(mode==='pvp') msg = `⏰ ${TEAM[opp(winner)].name}의 시간이 다 됐어요!`;
+      else msg = iWon ? '⏰ 상대의 시간이 다 됐어요! 시간 승리!' : '⏰ 시간이 다 됐어요! 다음엔 조금 더 빨리 둬 보자! 💪';
+    }
     $('resTitle').textContent = title;
     $('resPrize').textContent = iWon ? '$1,000,000' : `$${(money[winner]+100000).toLocaleString()}`;
     $('resMsg').textContent = msg;
@@ -1165,6 +1196,8 @@ function startLocal(m, lv){
   mode = m; if(lv!==undefined) level = lv;
   flip = false; myColor = 'w';
   resetLocal();
+  clock = tcSetting ? {w:tcSetting*1000, b:tcSetting*1000} : null;
+  clockLast = performance.now();
   ['menu','result','sheet','lobby','wait'].forEach(hide);
   render();
   say('w', mode==='ai' ? '<span>챌린지 시작! 파란 팀인 네가 먼저야 👆</span>' : '<span>챌린지 시작! 파란 팀 먼저! 👆</span>');
@@ -1213,7 +1246,7 @@ const net = (() => {
   return { ok:false, kind:'none', call:() => Promise.reject(new Error('파일을 직접 열었을 때는 온라인 대결을 할 수 없어요. server.py나 Apps Script 주소로 열어주세요!')) };
 })();
 
-const online = { code:null, pid:null, room:null, applied:0, gid:null, timer:null, lobbyTimer:null, sending:false, fail:0, leftShown:false, confirmT:null };
+const online = { offset:0, code:null, pid:null, room:null, applied:0, gid:null, timer:null, lobbyTimer:null, sending:false, fail:0, leftShown:false, confirmT:null };
 online.pid = store.get('bc_pid', true);
 if(!online.pid){ online.pid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36); store.set('bc_pid', online.pid, true); }
 
@@ -1237,7 +1270,7 @@ function refreshRooms(){
   net.call('list', {}).then(d => {
     const rooms = (d.rooms || []);
     $('roomList').innerHTML = rooms.length ? rooms.map(r => `
-      <div class="room">${r.king && CHAR_BY_ID[r.king] ? charSVG(r.king, 'K', 'w') : drawSVG('K','w')}<div class="rn">${esc(r.name)}의 방<small>방 번호 ${esc(r.code)}</small></div>
+      <div class="room">${r.king && CHAR_BY_ID[r.king] ? charSVG(r.king, 'K', 'w') : drawSVG('K','w')}<div class="rn">${esc(r.name)}의 방<small>방 번호 ${esc(r.code)}<span class="tcb">⏱ ${tcLabel(+r.tc || 0)}</span></small></div>
       <button class="btn btn-green" data-code="${esc(r.code)}">들어가기</button></div>`).join('')
       : '<div class="empty">아직 열린 방이 없어요.<br>새 방을 만들고 친구를 기다려 보세요!</div>';
   }).catch(e => { $('netMsg').textContent = '⚠️ ' + e.message; })
@@ -1247,7 +1280,7 @@ function lobbyBusy(b){ ['lCreate','lJoin'].forEach(id => $(id).disabled = b); $(
 function createRoom(){
   tryFullscreen();
   lobbyBusy(true); $('netMsg').textContent = '';
-  net.call('create', {pid:online.pid, name:getNick(), skin:skins.A})
+  net.call('create', {pid:online.pid, name:getNick(), skin:skins.A, tc:tcSetting})
     .then(d => enterRoom(d.room))
     .catch(e => { $('netMsg').textContent = '⚠️ ' + e.message; })
     .finally(() => lobbyBusy(false));
@@ -1308,6 +1341,7 @@ function handleRoom(room){
   if(!room || !online.code || room.code!==online.code) return;
   if(online.room && room.ver < online.room.ver) return;
   online.room = room;
+  if(room.now) online.offset = room.now - Date.now();
   if(room.status==='waiting'){
     $('waitCode').textContent = room.code; show('wait'); return;
   }
@@ -1418,6 +1452,7 @@ $('sUndo').onclick = () => {
   let h = hist.pop();
   if(mode==='ai' && h.S.turn==='b' && hist.length) h = hist.pop();
   S = h.S; money = h.money; caps = h.caps; lastMove = h.lastMove;
+  if(h.clock) clock = {...h.clock};
   over = false; selected = -1; selMoves = []; hintMove = null; gameToken++;
   hide('sheet'); hide('result');
   render(); say(S.turn, '<span>↩️ 되돌렸어! 다시 생각해 보자 🤔</span>');
@@ -1804,6 +1839,86 @@ $('mApp').onclick = () => { hide('menu'); show('appDl'); };
 $('appClose').onclick = () => { hide('appDl'); show('menu'); };
 $('appDl').addEventListener('click', e => { if(e.target.id==='appDl') $('appClose').onclick(); });
 updateMenuRec();
+
+/* =========================================================
+   체스 시계 (제한 시간)
+   ========================================================= */
+function tcLabel(s){ return s ? (s/60) + '분' : '없음'; }
+function renderTcChips(){
+  document.querySelectorAll('.tc-row').forEach(row => {
+    row.innerHTML = '<span>⏱ 제한 시간</span>' + TC_OPTIONS.map(s =>
+      `<button class="tc${s===tcSetting ? ' on' : ''}" data-tc="${s}">${tcLabel(s)}</button>`).join('');
+  });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.tc-row [data-tc]'); if(!b) return;
+  tcSetting = +b.dataset.tc; store.set('bc_tc', String(tcSetting)); SFX.pick(); renderTcChips();
+});
+renderTcChips();
+
+/* 남은 시간(ms). 시계를 안 쓰면 null */
+function clockMs(c){
+  if(mode==='online'){
+    const r = online.room;
+    if(!r || !r.clock) return null;
+    let ms = r.clock[c];
+    if(r.status==='playing' && !over && S.turn===c) ms -= (Date.now() + online.offset) - r.clock.start;
+    return Math.max(0, ms);
+  }
+  return clock ? Math.max(0, clock[c]) : null;
+}
+function fmtClock(ms){
+  if(ms < 10000) return (Math.floor(ms/100)/10).toFixed(1);
+  const s = Math.ceil(ms/1000);
+  return Math.floor(s/60) + ':' + String(s%60).padStart(2, '0');
+}
+function clockPaused(){
+  if(document.hidden) return true;
+  return ['sheet','guide','records','pick','menu','appDl'].some(id => $(id) && $(id).classList.contains('show'));
+}
+function timeOut(c){
+  if(over) return;
+  over = true; thinking = false; gameToken++;
+  SFX.check();
+  render();
+  say(c, `<span>⏰ <b>시간 초과!</b> ${esc(teamLabel(c))}의 시간이 다 됐어요!</span>`, 'K', 'top', 3000);
+  const tok = gameToken;
+  setTimeout(() => { if(tok===gameToken) showResult(opp(c), null, 'time'); }, 900);
+}
+let lastBeep = -1, flagAt = 0;
+function updateClocks(){
+  document.querySelectorAll('.bar .clock').forEach(el => {
+    const c = el.dataset.c, ms = clockMs(c);
+    if(ms === null) return;
+    el.textContent = fmtClock(ms);
+    const running = !over && S.turn===c;
+    el.classList.toggle('low', running && ms < 10000 && ms > 0);
+    el.classList.toggle('out', ms <= 0);
+  });
+  // 10초 남으면 째깍째깍 (온라인은 내 차례, 그 외에는 현재 차례)
+  const watch = mode==='online' ? myColor : S.turn;
+  const ms = clockMs(watch);
+  if(ms !== null && !over && S.turn===watch && ms < 10000 && ms > 0 && !clockPaused()){
+    const sec = Math.ceil(ms/1000);
+    if(sec !== lastBeep){ lastBeep = sec; tone(sec <= 3 ? 1320 : 880, .06, 'square', 0, .07); }
+  }
+}
+setInterval(() => {
+  const now = performance.now(), dt = now - clockLast; clockLast = now;
+  if(!S) return;
+  if(mode!=='online'){
+    if(clock && !over && !clockPaused()){
+      clock[S.turn] -= dt;
+      if(clock[S.turn] <= 0){ clock[S.turn] = 0; updateClocks(); timeOut(S.turn); return; }
+    }
+  } else if(online.room && online.room.clock && online.room.status==='playing' && !over){
+    if(clockMs(S.turn) <= 0 && Date.now() - flagAt > 2500){
+      flagAt = Date.now();
+      net.call('flag', {code:online.code, pid:online.pid}).then(d => handleRoom(d.room)).catch(() => {});
+    }
+  }
+  updateClocks();
+}, 100);
 
 /* 안드로이드 뒤로 가기 버튼: 열린 창을 닫고, 처음 화면이면 앱을 내림 */
 window.__androidBack = function(){
