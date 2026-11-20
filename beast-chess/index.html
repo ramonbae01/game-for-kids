@@ -295,7 +295,7 @@ input{font-family:inherit;color:var(--ink)}
 
 /* 배지 획득 축하 */
 .bfx{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;
-  background:radial-gradient(circle at 50% 45%, rgba(70,40,140,.55), rgba(12,6,34,.9));cursor:pointer;text-align:center;padding:16px}
+  background:radial-gradient(circle at 50% 45%, rgba(62,34,128,.95), rgba(12,6,34,.98));cursor:pointer;text-align:center;padding:16px}
 .bfx.show{display:flex;animation:bfxIn .25s ease-out}
 @keyframes bfxIn{from{opacity:0}}
 .bfx .rays{position:absolute;left:50%;top:44%;width:180vmax;height:180vmax;margin:-90vmax 0 0 -90vmax;pointer-events:none;
@@ -328,6 +328,27 @@ input{font-family:inherit;color:var(--ink)}
 .bfx .tap{position:relative;margin-top:14px;font-size:14px;color:#fff;opacity:.7;animation:fadeUp .5s ease-out 1.4s both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}}
 .bfx-p{position:fixed;z-index:91;pointer-events:none;line-height:1;will-change:transform,opacity}
+.bfx .bfx-p{z-index:1}
+.bfx .tierchip,.bfx .head,.bfx .medal,.bfx .bn,.bfx .bd,.bfx .bc,.bfx .tap{z-index:2}
+
+/* 배지 난이도별 */
+.badges .tier-h{grid-column:1/-1;text-align:left;font-size:16px;margin:8px 0 0;padding:4px 10px;border-radius:10px;background:#f1f3fa}
+.badge.t-M{background:#e3eeff;border-color:#2f6fe0}
+.badge.t-H{background:#f1e6ff;border-color:#7b4fd6;box-shadow:0 0 0 2px #e0c8ff inset, 0 0 12px rgba(178,141,255,.6)}
+.badge.lock{background:#eef0f5 !important;border-color:#c7cde3 !important;box-shadow:none !important}
+.bfx .tierchip{position:relative;margin-bottom:6px;font-size:clamp(14px,3.8vw,18px);border:3px solid #2b2340;border-radius:999px;padding:2px 14px;
+  animation:fadeUp .4s ease-out .1s both}
+.bfx.tier-E .tierchip{background:#5fe08f;color:#2b2340}
+.bfx.tier-M .tierchip{background:#6fa8ff;color:#fff}
+.bfx.tier-H .tierchip{background:linear-gradient(90deg,#ff4f6a,#ffd23f,#5fe08f,#2f80ff,#b28dff);color:#fff;-webkit-text-stroke:.6px #2b2340}
+.bfx.tier-M .rays{background:repeating-conic-gradient(from 0deg, rgba(110,170,255,.38) 0deg 9deg, rgba(110,170,255,0) 9deg 18deg);animation-duration:5s, .6s}
+.bfx.tier-M .medal{box-shadow:0 0 0 9px #cfe2ff, 0 0 0 13px #2b2340, 0 0 90px 36px rgba(90,150,255,.8)}
+.bfx.tier-H{background:radial-gradient(circle at 50% 45%, rgba(110,44,160,.96), rgba(10,4,30,.98))}
+.bfx.tier-H .rays{background:repeating-conic-gradient(from 0deg, rgba(255,79,106,.4) 0deg 6deg, rgba(255,210,63,.4) 6deg 12deg, rgba(95,224,143,.4) 12deg 18deg,
+  rgba(47,128,255,.4) 18deg 24deg, rgba(178,141,255,.4) 24deg 30deg, rgba(0,0,0,0) 30deg 36deg);animation-duration:3s, .6s}
+.bfx.tier-H .medal{background:radial-gradient(circle at 34% 28%, #ffffff 0 10%, #f0e2ff 26%, #c4a2ff 58%, #7b4fd6 100%);
+  box-shadow:0 0 0 9px #ffd23f, 0 0 0 13px #2b2340, 0 0 110px 44px rgba(190,140,255,.9);animation:medalIn 1.2s cubic-bezier(.18,1.5,.4,1) both, medalBob 1.2s ease-in-out 1.2s infinite}
+.bfx.tier-H .head{color:#fff1a8}
 
 /* 메뉴 시트 */
 .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 12px}
@@ -1098,14 +1119,14 @@ function onSquare(i){
   }
   const where = (vi(i)>>3) < 4 ? 'bottom' : 'top';
   if(p && p.c===S.turn){
-    selected = i; selMoves = legalMoves(S, i); hintMove = null;
+    selected = i; selMoves = legalMoves(S, i); hintMove = null; evt('select');
     SFX.pick();
     const inf = INFO[p.t], nm = esc(pieceName(p.t, p.c));
     if(selMoves.length) say(p.c, `<span><b>${nm}</b> (${inf.chess}) · ${inf.move}</span>`, p.t, where, 3200);
     else say(p.c, `<span><b>${nm}</b>는 지금 못 움직여요 😅 ${inCheck(S) ? '보스(킹)를 먼저 지켜줘!' : '다른 친구를 골라봐!'}</span>`, p.t, where);
     render();
   } else {
-    if(p){ SFX.oops(); say(p.c, `<span>나는 ${TEAM[p.c].name} <b>${esc(pieceName(p.t, p.c))}</b>! ${TEAM[S.turn].name} 캐릭터를 골라줘~</span>`, p.t, where); }
+    if(p){ evt('peek'); SFX.oops(); say(p.c, `<span>나는 ${TEAM[p.c].name} <b>${esc(pieceName(p.t, p.c))}</b>! ${TEAM[S.turn].name} 캐릭터를 골라줘~</span>`, p.t, where); }
     selected = -1; selMoves = []; render();
   }
 }
@@ -1126,7 +1147,7 @@ $('promoRow').addEventListener('click', e => {
 /* ---------- 수 두기 ---------- */
 function resetLocal(){
   S = newState(); hist = []; selected = -1; selMoves = []; lastMove = null; hintMove = null;
-  over = false; thinking = false; anim = null; floatMsg = null; pendingPromo = null; pendingFx = null; clock = null; gameKo = 0;
+  over = false; thinking = false; anim = null; floatMsg = null; pendingPromo = null; pendingFx = null; clock = null; gameKo = 0; gameMoves = 0; gameChecks = 0; gameKoTypes = {};
   money = {w:0,b:0}; caps = {w:[],b:[]}; gameToken++;
 }
 
@@ -1234,7 +1255,7 @@ function showResult(winner, drawMsg, reason, quiet){
     $('resMsg').textContent = drawMsg || '';
   }
   hide('sheet'); hide('promo');
-  renderResRec(quiet ? null : recordGame(winner));
+  renderResRec(quiet ? null : recordGame(winner, reason));
   show('result');
   updateRematchNote();
 }
@@ -1483,6 +1504,7 @@ function updateRematchNote(){
 $('pBot').addEventListener('click', e => { if(e.target.closest('.menu-btn')) openSheet(); });
 
 function openSheet(){
+  evt('sheet');
   const isOn = mode==='online';
   $('sUndo').classList.toggle('hide', isOn);
   $('sNew').classList.toggle('hide', isOn);
@@ -1523,7 +1545,7 @@ $('sUndo').onclick = () => {
   if(h.clock) clock = {...h.clock};
   over = false; selected = -1; selMoves = []; hintMove = null; gameToken++;
   hide('sheet'); hide('result');
-  render(); say(S.turn, '<span>↩️ 되돌렸어! 다시 생각해 보자 🤔</span>');
+  render(); say(S.turn, '<span>↩️ 되돌렸어! 다시 생각해 보자 🤔</span>'); evt('undo');
 };
 $('sNew').onclick = () => startLocal(mode, level);
 $('sResign').onclick = function(){
@@ -1538,6 +1560,7 @@ $('sResign').onclick = function(){
 $('sGuide').onclick = () => { hide('sheet'); buildGuide(); show('guide'); evt('guide'); };
 $('sRec').onclick = () => { hide('sheet'); openRecords('game'); };
 $('sSound').onclick = () => {
+  evt('sound');
   soundOn = !soundOn; store.set('bc_sound', soundOn ? '1' : '0');
   $('sSound').textContent = soundOn ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
   if(soundOn) SFX.pick();
@@ -1570,6 +1593,7 @@ $('lBack').onclick = () => { clearTimeout(online.lobbyTimer); hide('lobby'); sho
 $('wCancel').onclick = leaveOnline;
 
 $('resAgain').onclick = () => {
+  evt('again');
   if(mode!=='online'){ startLocal(mode, level); return; }
   $('resAgain').disabled = true; $('resAgain').textContent = '⏳ 기다리는 중';
   online.sending = true;
@@ -1634,7 +1658,7 @@ $('slots').addEventListener('click', e => {
 });
 $('gallery').addEventListener('click', e => {
   const b = e.target.closest('.gal'); if(!b) return;
-  skins[pickState.team][pickState.slot] = b.dataset.id || null; evt('skin');
+  skins[pickState.team][pickState.slot] = b.dataset.id || null; evt('skin'); if(pickState.team==='B') evt('skinB');
   saveSkins(); SFX.move();
   const i = ROLES.indexOf(pickState.slot);
   if(i < ROLES.length-1) pickState.slot = ROLES[i+1];   // 다음 말로 자동 이동
@@ -1647,7 +1671,7 @@ $('pRandom').onclick = () => {
   if(pool.length < 6) pool = CHARS.map(c => c.id);
   pool.sort(() => Math.random() - .5);
   ROLES.forEach((r, k) => skins[pickState.team][r] = pool[k]);
-  saveSkins(); SFX.coin(); renderPick();
+  saveSkins(); SFX.coin(); renderPick(); evt('random');
 };
 $('pDefault').onclick = () => {
   ROLES.forEach(r => skins[pickState.team][r] = null);
@@ -1788,41 +1812,113 @@ let REC = (() => {
 })();
 function saveRec(){ try{ localStorage.setItem(REC_KEY, JSON.stringify(REC)); }catch(e){} }
 
+const E = k => (REC.ev && REC.ev[k]) || 0;
+const TIER = {E:'🟢 쉬움', M:'🔵 중간', H:'🟣 중상급'};
 const BADGES = [
-  {id:'play1',  e:'🎮', n:'첫 게임',      d:'게임 한 판 끝까지 하기',      ok:r => (r.ev.games||0) >= 1},
-  {id:'move1',  e:'👆', n:'첫 걸음',      d:'말을 한 번 움직이기',         ok:r => (r.ev.moves||0) >= 1},
-  {id:'cap1',   e:'💥', n:'첫 잡기',      d:'상대 말을 처음 잡기',         ok:r => r.ko >= 1},
-  {id:'check1', e:'⚠️', n:'첫 체크',      d:'상대 킹을 체크하기',          ok:r => (r.ev.check||0) >= 1},
-  {id:'capP',   e:'🦶', n:'폰의 반란',    d:'폰으로 상대 말 잡기',         ok:r => (r.ev.byP||0) >= 1},
-  {id:'capN',   e:'🐴', n:'L자 점프',     d:'나이트로 상대 말 잡기',       ok:r => (r.ev.byN||0) >= 1},
-  {id:'capB',   e:'✨', n:'대각선 사냥',  d:'비숍으로 상대 말 잡기',       ok:r => (r.ev.byB||0) >= 1},
-  {id:'capR',   e:'🧱', n:'직진 돌격',    d:'룩으로 상대 말 잡기',         ok:r => (r.ev.byR||0) >= 1},
-  {id:'capQ',   e:'💪', n:'퀸의 힘',      d:'퀸으로 상대 말 잡기',         ok:r => (r.ev.byQ||0) >= 1},
-  {id:'capK',   e:'🤴', n:'킹의 한 방',   d:'킹으로 상대 말 잡기',         ok:r => (r.ev.byK||0) >= 1},
-  {id:'queen',  e:'👑', n:'퀸 사냥꾼',    d:'상대 퀸 잡기',                ok:r => (r.koBy.Q||0) >= 1},
-  {id:'castle', e:'🏰', n:'캐슬링',       d:'캐슬링 해보기 (킹과 룩 자리 바꾸기)', ok:r => (r.ev.castle||0) >= 1},
-  {id:'promo',  e:'🎉', n:'변신 성공',    d:'폰을 끝까지 보내 변신시키기', ok:r => (r.ev.promo||0) >= 1},
-  {id:'ep',     e:'👀', n:'앙파상',       d:'특별 규칙 앙파상으로 잡기',    ok:r => (r.ev.ep||0) >= 1},
-  {id:'hint',   e:'💡', n:'반짝 힌트',    d:'힌트 써 보기',                ok:r => (r.ev.hint||0) >= 1},
-  {id:'skin',   e:'🎨', n:'꾸미기 대장',  d:'캐릭터 바꿔 보기',            ok:r => (r.ev.skin||0) >= 1},
-  {id:'guide',  e:'📖', n:'공부벌레',     d:'캐릭터 도감 열어 보기',        ok:r => (r.ev.guide||0) >= 1},
-  {id:'ko10',   e:'🔟', n:'잡기 10번',    d:'상대 말 10개 잡기',           ok:r => r.ko >= 10},
-  {id:'ko50',   e:'💯', n:'잡기 마스터',  d:'상대 말 50개 잡기',           ok:r => r.ko >= 50},
-  {id:'multi5', e:'🧨', n:'한 판 싹쓸이', d:'한 판에서 말 5개 잡기',       ok:r => (r.ev.bestGameKo||0) >= 5},
-  {id:'play5',  e:'🎲', n:'5판 도전',     d:'게임 5판 하기',               ok:r => (r.ev.games||0) >= 5},
-  {id:'timer',  e:'⏱️', n:'시계 승부',    d:'제한 시간 켜고 한 판 하기',   ok:r => (r.ev.timer||0) >= 1},
-  {id:'first',  e:'🥇', n:'첫 승리',      d:'처음으로 이기기',             ok:r => r.total.w + (r.pvp.w||0) + (r.pvp.b||0) >= 1},
-  {id:'easy',   e:'🐣', n:'쉬움 정복',    d:'쉬움 컴퓨터 이기기',          ok:r => r.ai[0].w >= 1},
-  {id:'s2',     e:'🔥', n:'2연승',        d:'2번 연속 이기기',             ok:r => r.bestStreak >= 2},
-  {id:'w5',     e:'🏅', n:'5승 달성',     d:'5번 이기기',                  ok:r => r.total.w >= 5},
-  {id:'normal', e:'😎', n:'보통 정복',    d:'보통 컴퓨터 이기기',          ok:r => r.ai[1].w >= 1},
-  {id:'s3',     e:'⚡', n:'3연승',        d:'3번 연속 이기기',             ok:r => r.bestStreak >= 3},
-  {id:'hard',   e:'👹', n:'어려움 정복',  d:'어려움 컴퓨터 이기기',        ok:r => r.ai[2].w >= 1},
-  {id:'online', e:'🌐', n:'온라인 첫 승', d:'다른 기기 친구 이기기',       ok:r => r.online.w >= 1}
+  {id:'move1', t:'E', e:'👆', n:'첫 걸음', d:'말을 한 번 움직이기', ok:r => E('moves') >= 1},
+  {id:'move10', t:'E', e:'🚶', n:'열 걸음', d:'말을 10번 움직이기', ok:r => E('moves') >= 10},
+  {id:'move50', t:'E', e:'🏃', n:'오십 걸음', d:'말을 50번 움직이기', ok:r => E('moves') >= 50},
+  {id:'select', t:'E', e:'👉', n:'말 고르기', d:'내 말을 10번 눌러 보기', ok:r => E('select') >= 10},
+  {id:'peek', t:'E', e:'🔍', n:'정찰병', d:'상대 말을 눌러 보기', ok:r => E('peek') >= 1},
+  {id:'cap1', t:'E', e:'💥', n:'첫 잡기', d:'상대 말을 처음 잡기', ok:r => r.ko >= 1},
+  {id:'cap5', t:'E', e:'✋', n:'잡기 5번', d:'상대 말 5개 잡기', ok:r => r.ko >= 5},
+  {id:'ko10', t:'E', e:'🔟', n:'잡기 10번', d:'상대 말 10개 잡기', ok:r => r.ko >= 10},
+  {id:'capP', t:'E', e:'🦶', n:'폰의 반란', d:'폰으로 상대 말 잡기', ok:r => E('byP') >= 1},
+  {id:'capN', t:'E', e:'🐴', n:'L자 점프', d:'나이트로 상대 말 잡기', ok:r => E('byN') >= 1},
+  {id:'capB', t:'E', e:'✨', n:'대각선 사냥', d:'비숍으로 상대 말 잡기', ok:r => E('byB') >= 1},
+  {id:'capR', t:'E', e:'🧱', n:'직진 돌격', d:'룩으로 상대 말 잡기', ok:r => E('byR') >= 1},
+  {id:'capQ', t:'E', e:'💪', n:'퀸의 힘', d:'퀸으로 상대 말 잡기', ok:r => E('byQ') >= 1},
+  {id:'capK', t:'E', e:'🤴', n:'킹의 한 방', d:'킹으로 상대 말 잡기', ok:r => E('byK') >= 1},
+  {id:'koP', t:'E', e:'🥚', n:'폰 잡기', d:'상대 폰 잡기', ok:r => (r.koBy.P||0) >= 1},
+  {id:'koN', t:'E', e:'🐎', n:'나이트 잡기', d:'상대 나이트 잡기', ok:r => (r.koBy.N||0) >= 1},
+  {id:'koB', t:'E', e:'🔮', n:'비숍 잡기', d:'상대 비숍 잡기', ok:r => (r.koBy.B||0) >= 1},
+  {id:'koR', t:'E', e:'🗿', n:'룩 잡기', d:'상대 룩 잡기', ok:r => (r.koBy.R||0) >= 1},
+  {id:'queen', t:'E', e:'👑', n:'퀸 사냥꾼', d:'상대 퀸 잡기', ok:r => (r.koBy.Q||0) >= 1},
+  {id:'check1', t:'E', e:'⚠️', n:'첫 체크', d:'상대 킹을 체크하기', ok:r => E('check') >= 1},
+  {id:'check5', t:'E', e:'📣', n:'체크 5번', d:'체크를 5번 하기', ok:r => E('check') >= 5},
+  {id:'check2g', t:'E', e:'🎯', n:'연속 공격', d:'한 판에서 체크 2번 하기', ok:r => E('bestGameChecks') >= 2},
+  {id:'castle', t:'E', e:'🏰', n:'캐슬링', d:'캐슬링 해보기 (킹과 룩 자리 바꾸기)', ok:r => E('castle') >= 1},
+  {id:'multi3', t:'E', e:'🍀', n:'한 판 3개', d:'한 판에서 말 3개 잡기', ok:r => E('bestGameKo') >= 3},
+  {id:'game10', t:'E', e:'⏳', n:'열 수 버티기', d:'한 판에서 10수 이상 두기', ok:r => E('bestGameMoves') >= 10},
+  {id:'hint', t:'E', e:'💡', n:'반짝 힌트', d:'힌트 써 보기', ok:r => E('hint') >= 1},
+  {id:'hint5', t:'E', e:'🔦', n:'힌트 5번', d:'힌트를 5번 써 보기', ok:r => E('hint') >= 5},
+  {id:'undo', t:'E', e:'↩️', n:'다시 생각', d:'되돌리기 써 보기', ok:r => E('undo') >= 1},
+  {id:'skin', t:'E', e:'🎨', n:'꾸미기 대장', d:'캐릭터 바꿔 보기', ok:r => E('skin') >= 1},
+  {id:'skinB', t:'E', e:'🖌️', n:'친구 꾸미기', d:'상대 팀 캐릭터 바꿔 보기', ok:r => E('skinB') >= 1},
+  {id:'random', t:'E', e:'🎲', n:'랜덤 뽑기', d:'캐릭터 랜덤 버튼 눌러 보기', ok:r => E('random') >= 1},
+  {id:'guide', t:'E', e:'📖', n:'공부벌레', d:'캐릭터 도감 열어 보기', ok:r => E('guide') >= 1},
+  {id:'records', t:'E', e:'📊', n:'기록 확인', d:'내 기록 화면 열어 보기', ok:r => E('records') >= 1},
+  {id:'sound', t:'E', e:'🔊', n:'소리 조절', d:'소리 켜기·끄기 눌러 보기', ok:r => E('sound') >= 1},
+  {id:'tcPick', t:'E', e:'⌚', n:'시계 고르기', d:'제한 시간 골라 보기', ok:r => E('tcPick') >= 1},
+  {id:'sheet', t:'E', e:'☰', n:'메뉴 탐험', d:'게임 중 메뉴 열어 보기', ok:r => E('sheet') >= 1},
+  {id:'again', t:'E', e:'🔄', n:'한 판 더!', d:'게임이 끝나고 한 판 더 누르기', ok:r => E('again') >= 1},
+  {id:'play1', t:'E', e:'🎮', n:'첫 게임', d:'게임 한 판 끝까지 하기', ok:r => E('games') >= 1},
+  {id:'play3', t:'E', e:'🎳', n:'3판 도전', d:'게임 3판 하기', ok:r => E('games') >= 3},
+  {id:'play5', t:'E', e:'🎰', n:'5판 도전', d:'게임 5판 하기', ok:r => E('games') >= 5},
+  {id:'pvp1', t:'E', e:'👫', n:'친구랑 한 판', d:'둘이서 한 판 하기', ok:r => E('pvpGames') >= 1},
+  {id:'ai0p', t:'E', e:'🐥', n:'쉬움 도전', d:'쉬움 컴퓨터와 한 판 하기', ok:r => E('lv0') >= 1},
+  {id:'ai1p', t:'E', e:'🕶️', n:'보통 도전', d:'보통 컴퓨터와 한 판 하기', ok:r => E('lv1') >= 1},
+  {id:'ai2p', t:'E', e:'🌋', n:'어려움 도전', d:'어려움 컴퓨터와 한 판 하기', ok:r => E('lv2') >= 1},
+  {id:'timer', t:'E', e:'⏱️', n:'시계 승부', d:'제한 시간 켜고 한 판 하기', ok:r => E('timer') >= 1},
+  {id:'first', t:'E', e:'🥇', n:'첫 승리', d:'처음으로 이기기', ok:r => r.total.w + (r.pvp.w||0) + (r.pvp.b||0) >= 1},
+  {id:'easy', t:'E', e:'🐣', n:'쉬움 정복', d:'쉬움 컴퓨터 이기기', ok:r => r.ai[0].w >= 1},
+  {id:'lose1', t:'E', e:'🌱', n:'씩씩한 도전', d:'지더라도 끝까지 한 판 하기', ok:r => r.total.l >= 1},
+  {id:'day2', t:'E', e:'📅', n:'또 왔어요', d:'이틀 동안 게임하기', ok:r => (r.days||[]).length >= 2},
+  {id:'rich0', t:'E', e:'💵', n:'첫 상금', d:'상금 $100,000 모으기', ok:r => r.prize >= 100000},
+  {id:'move200', t:'M', e:'🦿', n:'이백 걸음', d:'말을 200번 움직이기', ok:r => E('moves') >= 200},
+  {id:'cap25', t:'M', e:'🥊', n:'잡기 25번', d:'상대 말 25개 잡기', ok:r => r.ko >= 25},
+  {id:'ko50', t:'M', e:'💯', n:'잡기 마스터', d:'상대 말 50개 잡기', ok:r => r.ko >= 50},
+  {id:'capP10', t:'M', e:'🐜', n:'폰 군단', d:'폰으로 10번 잡기', ok:r => E('byP') >= 10},
+  {id:'capN5', t:'M', e:'🏇', n:'점프 달인', d:'나이트로 5번 잡기', ok:r => E('byN') >= 5},
+  {id:'capB5', t:'M', e:'🪄', n:'대각선 달인', d:'비숍으로 5번 잡기', ok:r => E('byB') >= 5},
+  {id:'capR5', t:'M', e:'🚂', n:'직진 달인', d:'룩으로 5번 잡기', ok:r => E('byR') >= 5},
+  {id:'capQ5', t:'M', e:'🦸', n:'퀸 달인', d:'퀸으로 5번 잡기', ok:r => E('byQ') >= 5},
+  {id:'koQ3', t:'M', e:'🎖️', n:'퀸 사냥 달인', d:'상대 퀸 3번 잡기', ok:r => (r.koBy.Q||0) >= 3},
+  {id:'check20', t:'M', e:'📢', n:'체크 20번', d:'체크를 20번 하기', ok:r => E('check') >= 20},
+  {id:'check3g', t:'M', e:'🎯', n:'공격 3연타', d:'한 판에서 체크 3번 하기', ok:r => E('bestGameChecks') >= 3},
+  {id:'castleK', t:'M', e:'🏯', n:'짧은 캐슬링', d:'킹 쪽으로 캐슬링 하기', ok:r => E('castleK') >= 1},
+  {id:'castleQ', t:'M', e:'🏛️', n:'긴 캐슬링', d:'퀸 쪽으로 캐슬링 하기', ok:r => E('castleQ') >= 1},
+  {id:'promo', t:'M', e:'🎉', n:'변신 성공', d:'폰을 끝까지 보내 변신시키기', ok:r => E('promo') >= 1},
+  {id:'promo3', t:'M', e:'🦋', n:'변신 3번', d:'폰을 3번 변신시키기', ok:r => E('promo') >= 3},
+  {id:'promoN', t:'M', e:'🦄', n:'깜짝 변신', d:'폰을 나이트로 변신시키기', ok:r => E('promoN') >= 1},
+  {id:'ep', t:'M', e:'👀', n:'앙파상', d:'특별 규칙 앙파상으로 잡기', ok:r => E('ep') >= 1},
+  {id:'multi5', t:'M', e:'🧨', n:'한 판 싹쓸이', d:'한 판에서 말 5개 잡기', ok:r => E('bestGameKo') >= 5},
+  {id:'multi7', t:'M', e:'🌪️', n:'회오리 공격', d:'한 판에서 말 7개 잡기', ok:r => E('bestGameKo') >= 7},
+  {id:'game40', t:'M', e:'🐢', n:'끈기 왕', d:'한 판에서 40수 이상 두기', ok:r => E('bestGameMoves') >= 40},
+  {id:'play10', t:'M', e:'🎪', n:'10판 도전', d:'게임 10판 하기', ok:r => E('games') >= 10},
+  {id:'play20', t:'M', e:'🎡', n:'20판 도전', d:'게임 20판 하기', ok:r => E('games') >= 20},
+  {id:'pvp5', t:'M', e:'🤝', n:'단짝 친구', d:'둘이서 5판 하기', ok:r => E('pvpGames') >= 5},
+  {id:'w3', t:'M', e:'🥉', n:'3승 달성', d:'3번 이기기', ok:r => r.total.w >= 3},
+  {id:'w5', t:'M', e:'🏅', n:'5승 달성', d:'5번 이기기', ok:r => r.total.w >= 5},
+  {id:'w10', t:'M', e:'🥈', n:'10승 달성', d:'10번 이기기', ok:r => r.total.w >= 10},
+  {id:'s2', t:'M', e:'🔥', n:'2연승', d:'2번 연속 이기기', ok:r => r.bestStreak >= 2},
+  {id:'s3', t:'M', e:'⚡', n:'3연승', d:'3번 연속 이기기', ok:r => r.bestStreak >= 3},
+  {id:'normal', t:'M', e:'😎', n:'보통 정복', d:'보통 컴퓨터 이기기', ok:r => r.ai[1].w >= 1},
+  {id:'easy5', t:'M', e:'🐤', n:'쉬움 5승', d:'쉬움 컴퓨터 5번 이기기', ok:r => r.ai[0].w >= 5},
+  {id:'normal3', t:'M', e:'🦊', n:'보통 3승', d:'보통 컴퓨터 3번 이기기', ok:r => r.ai[1].w >= 3},
+  {id:'ai2p3', t:'M', e:'🧗', n:'용감한 도전자', d:'어려움 컴퓨터와 3판 하기', ok:r => E('lv2') >= 3},
+  {id:'timerWin', t:'M', e:'⏰', n:'시간 지키미', d:'제한 시간 게임에서 이기기', ok:r => E('timerWin') >= 1},
+  {id:'mate3', t:'M', e:'♚', n:'체크메이트 3번', d:'체크메이트로 3번 이기기', ok:r => E('mate') >= 3},
+  {id:'fast20', t:'M', e:'🚀', n:'빠른 승리', d:'내 20수 안에 이기기', ok:r => E('fast20') >= 1},
+  {id:'draw1', t:'M', e:'🤝', n:'무승부', d:'무승부 해보기', ok:r => r.total.d + (r.pvp.d||0) >= 1},
+  {id:'day3', t:'M', e:'🗓️', n:'3일 출석', d:'3일 동안 게임하기', ok:r => (r.days||[]).length >= 3},
+  {id:'day7', t:'M', e:'📆', n:'7일 출석', d:'7일 동안 게임하기', ok:r => (r.days||[]).length >= 7},
+  {id:'online', t:'M', e:'🌐', n:'온라인 첫 승', d:'다른 기기 친구 이기기', ok:r => r.online.w >= 1},
+  {id:'online3', t:'M', e:'📡', n:'온라인 3승', d:'다른 기기 친구 3번 이기기', ok:r => r.online.w >= 3},
+  {id:'hard', t:'H', e:'👹', n:'어려움 정복', d:'어려움 컴퓨터 이기기', ok:r => r.ai[2].w >= 1},
+  {id:'hard3', t:'H', e:'🐉', n:'어려움 3승', d:'어려움 컴퓨터 3번 이기기', ok:r => r.ai[2].w >= 3},
+  {id:'w20', t:'H', e:'🏆', n:'챔피언', d:'20번 이기기', ok:r => r.total.w >= 20},
+  {id:'s5', t:'H', e:'🌠', n:'5연승', d:'5번 연속 이기기', ok:r => r.bestStreak >= 5},
+  {id:'perfect', t:'H', e:'💎', n:'완벽한 승리', d:'내 말을 하나도 안 잃고 이기기', ok:r => E('perfect') >= 1},
+  {id:'ko100', t:'H', e:'☄️', n:'잡기 100번', d:'상대 말 100개 잡기', ok:r => r.ko >= 100},
+  {id:'koAll', t:'H', e:'🌈', n:'모두 잡았다', d:'한 판에서 폰·나이트·비숍·룩·퀸 모두 잡기', ok:r => E('koAll') >= 1},
+  {id:'fast10', t:'H', e:'⚡', n:'번개 승리', d:'내 10수 안에 이기기', ok:r => E('fast10') >= 1},
+  {id:'days10', t:'H', e:'🌟', n:'10일 출석', d:'10일 동안 게임하기', ok:r => (r.days||[]).length >= 10},
+  {id:'rich3', t:'H', e:'💰', n:'천만장자', d:'상금 $30,000,000 모으기', ok:r => r.prize >= 30000000},
 ];
 const LV_NAME = ['🐣 쉬움', '😎 보통', '🔥 어려움'];
 
-function recordGame(winner){
+function recordGame(winner, reason){
   if(recordedFor===gameToken) return null;
   recordedFor = gameToken;
   const entry = {t:Date.now(), mode, lv:level, opp:'', res:'d', prize:0};
@@ -1853,7 +1949,25 @@ function recordGame(winner){
   REC.hist.unshift(entry); REC.hist = REC.hist.slice(0, 30);
   if(!REC.ev) REC.ev = {};
   REC.ev.games = (REC.ev.games || 0) + 1;
-  if(mode==='online' ? !!(online.room && online.room.tc) : !!clock) REC.ev.timer = (REC.ev.timer || 0) + 1;
+  const EV = REC.ev, inc = k => EV[k] = (EV[k] || 0) + 1;
+  const timed = mode==='online' ? !!(online.room && online.room.tc) : !!clock;
+  if(timed) inc('timer');
+  const now = new Date(), dk = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
+  REC.days = REC.days || [];
+  if(!REC.days.includes(dk)){ REC.days.push(dk); REC.days = REC.days.slice(-400); }
+  if(mode==='pvp') inc('pvpGames');
+  if(mode==='ai') inc('lv' + level);
+  const won = mode==='pvp' ? !!winner : res==='w';
+  if(won){
+    if(!reason) inc('mate');
+    if(timed) inc('timerWin');
+    if(mode!=='pvp' && !reason){   // 체크메이트로 이긴 경우만
+      const meC = mode==='ai' ? 'w' : myColor;
+      if(gameMoves <= 20) inc('fast20');
+      if(gameMoves <= 10) inc('fast10');
+      if(caps[opp(meC)].length === 0) inc('perfect');
+    }
+  }
   const newBadges = awardBadges();
   return {res, prize, newBadges};
 }
@@ -1875,6 +1989,7 @@ function fmtDate(t){
 let recFrom = 'menu';
 function openRecords(from){
   recFrom = from;
+  evt('records');
   const R = REC;
   $('recPrize').textContent = '$' + R.prize.toLocaleString();
   $('recTiles').innerHTML = `
@@ -1884,9 +1999,13 @@ function openRecords(from){
     <div class="tile fire"><b>${R.streak}</b><span>연승 (최고 ${R.bestStreak})</span></div>
     <div class="tile"><b>${R.ko}</b><span>💥 탈락시킴</span></div>`;
   $('recBadgeCnt').textContent = `(${R.badges.filter(id => BADGES.some(x => x.id===id)).length} / ${BADGES.length})`;
-  $('recBadges').innerHTML = BADGES.map(b => {
-    const got = R.badges.includes(b.id);
-    return `<div class="badge${got ? '' : ' lock'}"><span class="be">${got ? b.e : '🔒'}</span>${b.n}<small>${b.d}</small></div>`;
+  $('recBadges').innerHTML = ['E','M','H'].map(t => {
+    const list = BADGES.filter(b => b.t===t);
+    const n = list.filter(b => R.badges.includes(b.id)).length;
+    return `<div class="tier-h">${TIER[t]} <b>${n}</b> / ${list.length}</div>` + list.map(b => {
+      const got = R.badges.includes(b.id);
+      return `<div class="badge t-${t}${got ? '' : ' lock'}"><span class="be">${got ? b.e : '🔒'}</span>${b.n}<small>${b.d}</small></div>`;
+    }).join('');
   }).join('');
   $('recAi').innerHTML = [0,1,2].map(l => `<div class="rec-row"><span class="rl">${LV_NAME[l]}</span><span class="rr">${wld(R.ai[l])}</span></div>`).join('');
   const opps = Object.entries(R.online.opps).sort((a,b) => (b[1].w+b[1].l+b[1].d) - (a[1].w+a[1].l+a[1].d)).slice(0, 6);
@@ -1925,7 +2044,7 @@ function updateMenuRec(){
 /* =========================================================
    배지 미션 & 획득 축하 연출
    ========================================================= */
-let gameKo = 0;
+let gameKo = 0, gameMoves = 0, gameChecks = 0, gameKoTypes = {};
 const badgeQueue = [];
 let badgeShowing = false, badgeTimer = null;
 function isMine(color){
@@ -1951,21 +2070,30 @@ function trackMove(m, mover, piece, captured){
   if(!isMine(mover)) return;
   const e = REC.ev || (REC.ev = {});
   e.moves = (e.moves || 0) + 1;
+  gameMoves++; e.bestGameMoves = Math.max(e.bestGameMoves || 0, gameMoves);
   if(captured){
     REC.ko++; REC.koBy[captured.t] = (REC.koBy[captured.t] || 0) + 1;
     const k = 'by' + (piece ? piece.t : 'P');
     e[k] = (e[k] || 0) + 1;
     gameKo++; e.bestGameKo = Math.max(e.bestGameKo || 0, gameKo);
+    gameKoTypes[captured.t] = 1;
+    if(['P','N','B','R','Q'].every(t => gameKoTypes[t])) e.koAll = (e.koAll || 0) + 1;
   }
-  if(m.castle) e.castle = (e.castle || 0) + 1;
-  if(m.promo)  e.promo  = (e.promo  || 0) + 1;
+  if(m.castle){ e.castle = (e.castle || 0) + 1; e['castle'+m.castle] = (e['castle'+m.castle] || 0) + 1; }
+  if(m.promo){ e.promo = (e.promo || 0) + 1; e['promo'+m.promo] = (e['promo'+m.promo] || 0) + 1; }
   if(m.ep)     e.ep     = (e.ep     || 0) + 1;
-  if(inCheck(S)) e.check = (e.check || 0) + 1;
+  if(inCheck(S)){ e.check = (e.check || 0) + 1; gameChecks++; e.bestGameChecks = Math.max(e.bestGameChecks || 0, gameChecks); }
   awardBadges();
 }
 
-function badgeSound(){
+function badgeSound(tier){
   if(!soundOn) return;
+  if(tier==='M'){ [784, 988, 1175, 1568].forEach((f, i) => tone(f, .14, 'square', 1.2 + i*.08, .08)); }
+  if(tier==='H'){
+    [523, 659, 784, 1047, 1319, 1568, 2093].forEach((f, i) => tone(f, .16, 'square', 1.2 + i*.07, .09));
+    [1047, 1319, 1568, 2093].forEach(f => tone(f, 1.6, 'triangle', 1.75, .08));
+    setTimeout(() => SFX.boom(true), 1700);
+  }
   SFX.boom(true);
   tone(98, .7, 'sine', 0, .35);
   [523, 659, 784, 1047].forEach((f, i) => tone(f, .16, 'square', .08 + i*.085, .11));
@@ -1984,7 +2112,8 @@ function badgeBurst(cx, cy, big){
     if(i % 2 === 0){ el.textContent = EM[i % EM.length]; el.style.fontSize = (22 + Math.random()*26) + 'px'; }
     else { const s = 8 + Math.random()*12; Object.assign(el.style, {width:s+'px', height:s+'px', borderRadius:(Math.random()<.5?'50%':'3px'), background:COL[i % COL.length], border:'2px solid #2b2340'}); }
     el.style.left = cx + 'px'; el.style.top = cy + 'px';
-    document.body.appendChild(el);
+    const host = $('bfx') && $('bfx').classList.contains('show') ? $('bfx') : document.body;
+    host.appendChild(el);
     const ang = Math.random() * Math.PI * 2, dist = Math.min(innerWidth, innerHeight) * (.28 + Math.random()*.42);
     const tx = Math.cos(ang)*dist, ty = Math.sin(ang)*dist;
     el.animate([
@@ -2005,22 +2134,28 @@ function showNextBadge(){
     document.body.appendChild(box);
   }
   const got = REC.badges.filter(id => BADGES.some(x => x.id===id)).length;
-  box.classList.remove('show'); void box.offsetWidth;
+  box.classList.remove('show','tier-E','tier-M','tier-H'); void box.offsetWidth;
+  box.classList.add('tier-' + (b.t || 'E'));
   box.innerHTML = `<div class="rays"></div><div class="flash"></div>
-    <div class="head">🎖 새 배지 획득!</div>
+    <div class="tierchip">${TIER[b.t || 'E']} 배지</div>
+    <div class="head">${b.t==='H' ? '🌈 대단해요! 🌈' : '🎖 새 배지 획득!'}</div>
     <div class="medal">${b.e}</div>
     <div class="bn">${b.n}</div>
     <div class="bd">${b.d}</div>
     <div class="bc">🏆 배지 ${got} / ${BADGES.length}</div>
     <div class="tap">화면을 누르면 계속해요</div>`;
   box.classList.add('show');
-  badgeSound();
-  try{ if(navigator.vibrate) navigator.vibrate([80, 60, 80, 60, 220]); }catch(e){}
+  badgeSound(b.t);
+  try{ if(navigator.vibrate) navigator.vibrate(b.t==='H' ? [100,60,100,60,100,60,400] : b.t==='M' ? [80,60,80,60,260] : [70,50,160]); }catch(e){}
   const cx = innerWidth/2, cy = innerHeight*.44;
   setTimeout(() => badgeBurst(cx, cy, true), 350);
-  setTimeout(() => badgeBurst(cx, cy, false), 900);
+  setTimeout(() => badgeBurst(cx, cy, b.t!=='E'), 900);
+  if(b.t==='M' || b.t==='H') setTimeout(() => badgeBurst(cx, cy, true), 1500);
+  if(b.t==='H'){ setTimeout(() => badgeBurst(innerWidth*.2, innerHeight*.3, true), 2000); setTimeout(() => badgeBurst(innerWidth*.8, innerHeight*.3, true), 2300); }
   clearTimeout(badgeTimer);
-  badgeTimer = setTimeout(showNextBadge, 3400);
+  // 한꺼번에 많이 따면 조금 빨리 넘어가요
+  const dur = b.t==='H' ? 4600 : badgeQueue.length >= 2 ? 2300 : 3400;
+  badgeTimer = setTimeout(showNextBadge, dur);
 }
 
 $('mRec').onclick = () => openRecords('menu');
@@ -2043,7 +2178,7 @@ function renderTcChips(){
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('.tc-row [data-tc]'); if(!b) return;
-  tcSetting = +b.dataset.tc; store.set('bc_tc', String(tcSetting)); SFX.pick(); renderTcChips();
+  tcSetting = +b.dataset.tc; store.set('bc_tc', String(tcSetting)); SFX.pick(); renderTcChips(); if(tcSetting) evt('tcPick');
 });
 renderTcChips();
 
