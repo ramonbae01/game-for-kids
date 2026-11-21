@@ -2,7 +2,7 @@ name: 안드로이드 앱 만들기
 
 on:
   push:
-    branches: [ main, 'claude/**' ]
+    branches: [ main ]
     paths: [ 'beast-chess/index.html', 'android/**', '.github/workflows/android.yml' ]
   workflow_dispatch:
 
