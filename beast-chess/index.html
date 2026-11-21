@@ -417,6 +417,19 @@ input{font-family:inherit;color:var(--ink)}
 .bolt{position:absolute;font-size:clamp(40px,12vw,80px);z-index:1;pointer-events:none;animation:boltIn .5s ease-out both}
 @keyframes boltIn{0%{opacity:0;transform:scale(2.4)}40%{opacity:1}100%{opacity:.85;transform:scale(1)}}
 
+/* 앱 업데이트 안내 */
+.upd{position:fixed;inset:0;z-index:94;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(20,30,70,.72)}
+.upd.show{display:flex}
+.upd .card{max-width:420px;animation:cardIn .45s cubic-bezier(.2,1.5,.4,1)}
+.upd .ui{font-size:64px;line-height:1;animation:hop 1s ease-in-out infinite}
+.upd .uv{display:inline-block;background:var(--gold);border:3px solid var(--ink);border-radius:999px;padding:2px 14px;font-size:18px;margin:4px 0 8px}
+.upd .ubar{height:16px;border-radius:9px;border:3px solid var(--ink);background:#eef0f5;overflow:hidden;margin:12px 0 6px}
+.upd .ubar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5fe08f,#2f80ff);transition:width .3s}
+.upd .us{font-size:16px;min-height:24px}
+.upd-banner{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:93;display:none;
+  background:#fff;border:3px solid var(--ink);border-radius:999px;padding:6px 14px;font-size:14px;box-shadow:0 4px 0 var(--ink);white-space:nowrap}
+.upd-banner.show{display:block;animation:fadeUp .4s ease-out}
+
 /* 메뉴 시트 */
 .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 12px}
 .sheet-grid .btn{font-size:18px;padding:14px 6px}
@@ -663,6 +676,23 @@ input{font-family:inherit;color:var(--ink)}
   </div>
   <div class="duel-timer"><i id="duelBar"></i></div>
 </div>
+
+<!-- 앱 업데이트 -->
+<div class="upd" id="upd">
+  <div class="card">
+    <div class="ui">🎁</div>
+    <h2>새 버전이 나왔어요!</h2>
+    <div class="uv" id="updVer"></div>
+    <p id="updNotes"></p>
+    <div class="ubar"><i id="updBar"></i></div>
+    <div class="us" id="updStatus">자동으로 받는 중…</div>
+    <div class="mk-btns" id="updBtns">
+      <button class="btn btn-white" id="updLater">나중에</button>
+      <button class="btn btn-green" id="updNow" disabled>⬇️ 받는 중</button>
+    </div>
+  </div>
+</div>
+<div class="upd-banner" id="updBanner">🎁 새 버전 준비 완료! 게임이 끝나면 설치돼요</div>
 
 <!-- 기록 -->
 <div class="overlay" id="records">
@@ -2423,6 +2453,7 @@ setInterval(() => {
 window.__androidBack = function(){
   const on = id => $(id).classList.contains('show');
   if(on('promo')) return true;
+  if(on('upd')){ $('updLater').onclick(); return true; }
   if(on('duelIn')){ $('duelNo').onclick(); return true; }
   if(on('duelOut')){ $('duelOutCancel').onclick(); return true; }
   if(on('maker')){ $('mkClose').onclick(); return true; }
@@ -2790,6 +2821,70 @@ $('duelYes').onclick = () => {
 
 updateFriendsBadge();
 if(acct.id) setTimeout(acctPoll, 800);
+
+
+/* =========================================================
+   🔄 앱 자동 업데이트 (안드로이드 앱에서만)
+   ========================================================= */
+const upd = { info:null, ready:false, later:false, asked:false };
+function updIdle(){
+  return $('menu').classList.contains('show') || over || !S;
+}
+function updShow(){
+  if(upd.later) return;
+  $('updBanner').classList.remove('show');
+  show('upd');
+}
+function updInstallNow(){
+  if(!window.AndroidUpdate) return;
+  $('updStatus').textContent = window.AndroidUpdate.canInstall()
+    ? '설치를 시작해요! 앱이 잠깐 닫혔다가 다시 열려요 🔄'
+    : '"이 출처 허용"을 켜고 뒤로 돌아오면 설치돼요 👍';
+  $('updNow').disabled = true;
+  setTimeout(() => window.AndroidUpdate.install(), 1400);
+}
+window.__updEvt = ev => {
+  if(!ev) return;
+  if(ev.type==='available'){
+    upd.info = ev; upd.ready = false;
+    $('updVer').textContent = `v${ev.current || '?'} → v${ev.versionName}`;
+    $('updNotes').textContent = ev.notes || '';
+    $('updBar').style.width = '0%';
+    $('updStatus').textContent = '자동으로 받는 중…';
+    $('updNow').disabled = true; $('updNow').textContent = '⬇️ 받는 중';
+    if(updIdle()) updShow(); else { $('updBanner').textContent = '🎁 새 버전을 받는 중이에요…'; $('updBanner').classList.add('show'); }
+  } else if(ev.type==='progress'){
+    if(ev.pct >= 0){ $('updBar').style.width = ev.pct + '%'; $('updStatus').textContent = `자동으로 받는 중… ${ev.pct}%`; }
+  } else if(ev.type==='ready'){
+    upd.ready = true;
+    $('updBar').style.width = '100%';
+    $('updNow').disabled = false; $('updNow').textContent = '✨ 지금 업데이트';
+    if(updIdle() && !upd.later){
+      updShow();
+      $('updStatus').textContent = '다 받았어요! 곧 설치할게요';
+      upd.asked = true;
+      setTimeout(() => { if($('upd').classList.contains('show') && updIdle()) updInstallNow(); }, 1800);
+    } else {
+      $('updBanner').textContent = '🎁 새 버전 준비 완료! 게임이 끝나면 설치돼요';
+      $('updBanner').classList.add('show');
+    }
+  } else if(ev.type==='installing'){
+    $('updStatus').textContent = '설치하는 중… 🔧';
+  } else if(ev.type==='error'){
+    show('upd'); $('updStatus').textContent = '⚠️ ' + (ev.msg || '업데이트하지 못했어요');
+    $('updNow').disabled = !upd.ready; $('updNow').textContent = '🔁 다시 시도';
+  }
+};
+$('updNow').onclick = updInstallNow;
+$('updLater').onclick = () => { upd.later = true; hide('upd'); $('updBanner').classList.remove('show'); };
+// 게임이 끝나 처음 화면/결과 화면이 되면, 받아 둔 업데이트를 설치
+setInterval(() => {
+  if(upd.ready && !upd.later && !upd.asked && updIdle() && !$('duelIn').classList.contains('show')){
+    upd.asked = true; updShow();
+    $('updStatus').textContent = '다 받았어요! 곧 설치할게요';
+    setTimeout(() => { if($('upd').classList.contains('show')) updInstallNow(); }, 1800);
+  }
+}, 2000);
 
 /* 처음 화면 */
 resetLocal(); render();

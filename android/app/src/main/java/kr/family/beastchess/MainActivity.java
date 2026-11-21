@@ -2,6 +2,12 @@ package kr.family.beastchess;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageInstaller;
+import android.provider.Settings;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import android.content.Intent;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -50,6 +56,11 @@ public class MainActivity extends Activity {
     private static final int REQ_FILE = 7001;
     private ValueCallback<Uri[]> fileCallback;
     private Uri cameraUri;
+    private static MainActivity current;
+    private long lastUpdateCheck = 0;
+    private File downloadedApk;
+    private boolean installWhenAllowed = false;
+    private volatile boolean updateBusy = false;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -123,6 +134,8 @@ public class MainActivity extends Activity {
             }
         });
         web.addJavascriptInterface(new NetBridge(), "AndroidNet");
+        web.addJavascriptInterface(new UpdateBridge(), "AndroidUpdate");
+        current = this;
         setContentView(web);
         hideSystemBars();
 
@@ -189,6 +202,188 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         web.onResume();
+        // "다른 앱 설치 허용"을 켜고 돌아왔으면 바로 설치를 이어가요
+        if (installWhenAllowed && canInstall()) {
+            installWhenAllowed = false;
+            startInstall();
+        }
+        // 3시간마다 새 버전 확인
+        if (System.currentTimeMillis() - lastUpdateCheck > 3 * 3600 * 1000L) {
+            web.postDelayed(this::checkUpdate, 4000);
+        }
+    }
+
+    /* =========================================================
+       🔄 자동 업데이트: version.json 확인 → APK 다운로드 → 설치
+       ========================================================= */
+    private static final String VERSION_URL =
+            "https://github.com/ramonbae01/game-for-kids/releases/latest/download/version.json";
+
+    private void updEvent(String json) {
+        final String js = "window.__updEvt && window.__updEvt(" + json + ")";
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript(js, null); });
+    }
+
+    static void notifyUpdateError(String msg) {
+        MainActivity a = current;
+        if (a != null) a.updEvent("{\"type\":\"error\",\"msg\":" + JSONObject.quote(msg == null ? "설치하지 못했어요" : msg) + "}");
+    }
+
+    private int myVersion() {
+        try {
+            PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return Build.VERSION.SDK_INT >= 28 ? (int) pi.getLongVersionCode() : pi.versionCode;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private boolean canInstall() {
+        return Build.VERSION.SDK_INT < 26 || getPackageManager().canRequestPackageInstalls();
+    }
+
+    private void checkUpdate() {
+        if (updateBusy || downloadedApk != null) return;
+        lastUpdateCheck = System.currentTimeMillis();
+        updateBusy = true;
+        pool.execute(() -> {
+            try {
+                JSONObject v = new JSONObject(httpGetString(VERSION_URL));
+                int code = v.getInt("versionCode");
+                if (code > myVersion()) {
+                    JSONObject ev = new JSONObject();
+                    ev.put("type", "available");
+                    ev.put("versionName", v.optString("versionName", "1." + code));
+                    ev.put("notes", v.optString("notes", ""));
+                    ev.put("current", "1." + myVersion());
+                    updEvent(ev.toString());
+                    downloadApk(v.getString("apk"), code);
+                }
+            } catch (Exception ignored) {
+                // 인터넷이 없거나 아직 버전 정보가 없으면 조용히 넘어가요
+            } finally {
+                updateBusy = false;
+            }
+        });
+    }
+
+    private void downloadApk(String url, int code) {
+        try {
+            File dir = new File(getCacheDir(), "update");
+            if (!dir.exists()) dir.mkdirs();
+            File f = new File(dir, "beast-chess-" + code + ".apk");
+            if (!f.exists() || f.length() < 100000) {
+                File tmp = new File(dir, "download.tmp");
+                HttpURLConnection c = openFollow(url);
+                long total = c.getContentLengthLong(), got = 0;
+                int lastPct = -1;
+                try (InputStream in = c.getInputStream(); FileOutputStream out = new FileOutputStream(tmp)) {
+                    byte[] buf = new byte[16384];
+                    int n;
+                    while ((n = in.read(buf)) > 0) {
+                        out.write(buf, 0, n);
+                        got += n;
+                        int pct = total > 0 ? (int) (got * 100 / total) : -1;
+                        if (pct != lastPct && pct % 5 == 0) {
+                            lastPct = pct;
+                            updEvent("{\"type\":\"progress\",\"pct\":" + pct + "}");
+                        }
+                    }
+                }
+                c.disconnect();
+                if (!tmp.renameTo(f)) throw new Exception("rename");
+            }
+            // 받은 파일이 정말 새 버전인지 확인
+            PackageInfo info = getPackageManager().getPackageArchiveInfo(f.getAbsolutePath(), 0);
+            if (info == null || !getPackageName().equals(info.packageName)) throw new Exception("APK 파일이 이상해요");
+            downloadedApk = f;
+            updEvent("{\"type\":\"ready\",\"canInstall\":" + canInstall() + "}");
+        } catch (Exception e) {
+            updEvent("{\"type\":\"error\",\"msg\":" + JSONObject.quote("업데이트를 받지 못했어요: " + e.getMessage()) + "}");
+        }
+    }
+
+    private void startInstall() {
+        final File f = downloadedApk;
+        if (f == null || !f.exists()) return;
+        if (!canInstall()) {
+            installWhenAllowed = true;
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) {
+                updEvent("{\"type\":\"error\",\"msg\":\"설정 화면을 열지 못했어요\"}");
+            }
+            return;
+        }
+        updEvent("{\"type\":\"installing\"}");
+        pool.execute(() -> {
+            try {
+                PackageInstaller pi = getPackageManager().getPackageInstaller();
+                PackageInstaller.SessionParams params =
+                        new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+                params.setAppPackageName(getPackageName());
+                if (Build.VERSION.SDK_INT >= 31) {
+                    params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
+                }
+                int id = pi.createSession(params);
+                try (PackageInstaller.Session s = pi.openSession(id)) {
+                    try (OutputStream out = s.openWrite("base.apk", 0, f.length());
+                         InputStream in = new FileInputStream(f)) {
+                        byte[] buf = new byte[65536];
+                        int n;
+                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                        s.fsync(out);
+                    }
+                    Intent i = new Intent(this, InstallReceiver.class);
+                    int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+                    PendingIntent pend = PendingIntent.getBroadcast(this, id, i, flags);
+                    s.commit(pend.getIntentSender());
+                }
+            } catch (Exception e) {
+                updEvent("{\"type\":\"error\",\"msg\":" + JSONObject.quote("설치하지 못했어요: " + e.getMessage()) + "}");
+            }
+        });
+    }
+
+    /** 게임 화면에서 부르는 업데이트 기능 */
+    private class UpdateBridge {
+        @JavascriptInterface public void check() { runOnUiThread(MainActivity.this::checkUpdate); }
+        @JavascriptInterface public void install() { runOnUiThread(MainActivity.this::startInstall); }
+        @JavascriptInterface public boolean canInstall() { return MainActivity.this.canInstall(); }
+        @JavascriptInterface public String version() { return "1." + myVersion(); }
+    }
+
+    private static HttpURLConnection openFollow(String url) throws Exception {
+        for (int hop = 0; hop < 6; hop++) {
+            HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            c.setInstanceFollowRedirects(false);
+            c.setConnectTimeout(15000);
+            c.setReadTimeout(30000);
+            int code = c.getResponseCode();
+            if (code >= 300 && code < 400) {
+                String loc = c.getHeaderField("Location");
+                c.disconnect();
+                if (loc == null) break;
+                url = new URL(new URL(url), loc).toString();
+                continue;
+            }
+            if (code != 200) { c.disconnect(); throw new Exception("HTTP " + code); }
+            return c;
+        }
+        throw new Exception("too many redirects");
+    }
+
+    private static String httpGetString(String url) throws Exception {
+        HttpURLConnection c = openFollow(url);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (InputStream in = c.getInputStream()) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        }
+        c.disconnect();
+        return out.toString(StandardCharsets.UTF_8.name());
     }
 
     /** 뒤로 가기: 게임 안의 창을 먼저 닫고, 처음 화면이면 앱을 내려요 */
@@ -202,6 +397,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (current == this) current = null;
         pool.shutdownNow();
         if (web != null) web.destroy();
         super.onDestroy();

@@ -40,8 +40,16 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle -p android assembleRelease --no-daemon --stacktrace
 
-      - name: 파일 이름 정리
-        run: cp android/app/build/outputs/apk/release/app-release.apk beast-chess.apk
+      - name: 파일 이름 정리 + 버전 정보(version.json)
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk beast-chess.apk
+          N=${{ github.run_number }}
+          cat > version.json <<JSON
+          {"versionCode": $N, "versionName": "1.$N",
+           "apk": "https://github.com/${{ github.repository }}/releases/download/app-v1.$N/beast-chess.apk",
+           "notes": "새로운 기능과 고친 점이 들어 있어요!"}
+          JSON
+          cat version.json
 
       - uses: actions/upload-artifact@v4
         with:
@@ -58,4 +66,6 @@ jobs:
           body: |
             📱 휴대폰에서 아래 **beast-chess.apk** 를 눌러 내려받고 설치하세요.
             (처음 설치할 때 "출처를 알 수 없는 앱 설치 허용"이 필요할 수 있어요)
-          files: beast-chess.apk
+          files: |
+            beast-chess.apk
+            version.json
