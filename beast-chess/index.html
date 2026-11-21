@@ -378,6 +378,9 @@ input{font-family:inherit;color:var(--ink)}
 .fr .x{background:#fff;border:2px solid #c7cde3;border-radius:10px;font-size:13px;padding:6px 8px}
 .fr .x.arm{background:#ff3b5c;color:#fff;border-color:#b0102e}
 .fr.req{background:#fff3b0}
+.fr.found{background:#e3ffe9}
+.fr .hd{color:var(--blue);font-size:14px}
+#frDeleteMe.arm{background:#ff3b5c;color:#fff}
 .badge-dot{display:inline-block;min-width:18px;height:18px;border-radius:9px;background:#ff3b5c;color:#fff;font-size:12px;line-height:18px;padding:0 5px;margin-left:2px}
 
 /* 결투 신청 */
@@ -635,15 +638,23 @@ input{font-family:inherit;color:var(--ink)}
     <div id="frSignup">
       <p>친구랑 대결하려면 나만의 <b>게임 아이디</b>가 필요해요!</p>
       <div class="field"><label for="frName">내 이름</label><input id="frName" maxlength="8" autocomplete="off" placeholder="이름"></div>
+      <div class="field"><label for="frHandle">아이디</label><input id="frHandle" maxlength="12" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="예: 민준, minjun_7"></div>
+      <p class="mk-tip">한글·영문·숫자·밑줄(_)로 2~12자</p>
       <button class="btn btn-blue wide" id="frCreate">🆔 게임 아이디 만들기</button>
     </div>
     <div id="frMain" hidden>
-      <div class="myid">내 아이디<b id="frMyId">------</b><span id="frMyName"></span></div>
-      <p class="mk-tip">친구에게 내 아이디를 알려 주세요!</p>
-      <div class="field"><input id="frAddId" inputmode="numeric" maxlength="6" placeholder="친구 아이디 6자리"><button class="btn btn-yellow" id="frAdd" style="font-size:16px;padding:10px 12px">➕ 친구 신청</button></div>
+      <div class="myid">내 아이디<b id="frMyId"></b><span id="frMyName"></span></div>
+      <div id="frSetHandle" hidden>
+        <p class="mk-tip">✨ 이제 숫자 대신 <b>글자 아이디</b>를 쓸 수 있어요! 친구가 찾기 쉬워요</p>
+        <div class="field"><input id="frNewHandle" maxlength="12" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="예: 민준, minjun_7"><button class="btn btn-yellow" id="frSetBtn" style="font-size:16px;padding:10px 12px">정하기</button></div>
+      </div>
+      <p class="mk-tip" id="frTell">친구에게 내 아이디를 알려 주세요!</p>
+      <div class="field"><input id="frQ" maxlength="12" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="🔍 친구 아이디 검색"><button class="btn btn-yellow" id="frSearch" style="font-size:16px;padding:10px 12px">🔍 찾기</button></div>
+      <div class="fr-list" id="frResults"></div>
       <div class="fr-list" id="frReqs"></div>
       <div class="sub">👥 내 친구 <small style="opacity:.7">· 🟢 지금 접속 중</small></div>
       <div class="fr-list" id="frList"></div>
+      <button class="btn btn-white wide" id="frDeleteMe" style="margin-top:14px;font-size:15px;padding:8px">🗑 내 아이디 삭제하기</button>
     </div>
     <div class="net-msg" id="frMsg"></div>
     <button class="btn btn-white wide" id="frClose">닫기</button>
@@ -2620,7 +2631,7 @@ function fetchRoomImages(room){
 /* =========================================================
    🆔 게임 아이디 & 👥 친구 & ⚔️ 결투 신청
    ========================================================= */
-const acct = { id:store.get('bc_uid'), token:store.get('bc_utk'), name:store.get('bc_uname'), data:null, timer:null,
+const acct = { id:store.get('bc_uid'), token:store.get('bc_utk'), name:store.get('bc_uname'), handle:store.get('bc_uh') || '', data:null, timer:null,
   seenCh:null, out:null, outTimer:null, inCh:null, inTimer:null, ringTimer:null };
 function acctAuth(extra){ return Object.assign({id:acct.id, token:acct.token}, extra || {}); }
 function frMsg(t){ $('frMsg').textContent = t || ''; }
@@ -2635,51 +2646,107 @@ function renderFriends(){
   const has = !!acct.id;
   $('frSignup').hidden = has; $('frMain').hidden = !has;
   if(!has){ $('frName').value = $('frName').value || store.get('bc_nick') || ''; return; }
-  $('frMyId').textContent = acct.id; $('frMyName').textContent = acct.name || '';
+  $('frMyId').textContent = acct.handle || '(아직 없음)';
+  $('frMyName').textContent = acct.name || '';
+  $('frSetHandle').hidden = !!acct.handle;
+  $('frTell').hidden = !acct.handle;
   const d = acct.data;
   if(!d) { $('frList').innerHTML = '<div class="empty">불러오는 중…</div>'; return; }
   $('frReqs').innerHTML = (d.requests || []).map(r => `
-    <div class="fr req"><span class="fn">🙋 ${esc(r.n)}<small>아이디 ${esc(r.id)} · 친구 신청이 왔어요!</small></span>
+    <div class="fr req"><span class="fn">🙋 ${esc(r.n)}<small>${r.h ? '<span class="hd">@' + esc(r.h) + '</span> · ' : ''}친구 신청이 왔어요!</small></span>
       <button class="btn btn-green" data-acc="${esc(r.id)}">수락</button><button class="x" data-rej="${esc(r.id)}">거절</button></div>`).join('');
   const fr = (d.friends || []).slice().sort((a, b) => (b.on - a.on) || a.n.localeCompare(b.n));
   $('frList').innerHTML = fr.length ? fr.map(f => `
     <div class="fr"><span class="dot${f.on ? ' on' : ''}"></span>
-      <span class="fn">${esc(f.n)}<small>아이디 ${esc(f.id)} · ${f.on ? '지금 접속 중' : '쉬는 중'}</small></span>
+      <span class="fn">${esc(f.n)}<small>${f.h ? '<span class="hd">@' + esc(f.h) + '</span> · ' : ''}${f.on ? '지금 접속 중' : '쉬는 중'}</small></span>
       <button class="btn ${f.on ? 'btn-pink' : 'btn-white'}" data-duel="${esc(f.id)}" ${f.on ? '' : 'disabled'}>⚔️ 결투</button>
       <button class="x" data-del="${esc(f.id)}">삭제</button></div>`).join('')
-    : '<div class="empty">아직 친구가 없어요.<br>친구 아이디를 입력해서 신청해 보세요!</div>';
+    : '<div class="empty">아직 친구가 없어요.<br>위에서 친구 아이디를 검색해 보세요!</div>';
 }
 function updateFriendsBadge(){
   const n = acct.data && acct.data.requests ? acct.data.requests.length : 0;
   $('mFriends').innerHTML = '👥 친구' + (n ? `<span class="badge-dot">${n}</span>` : '');
 }
+const HANDLE_RE = /^[0-9A-Za-z가-힣_]{2,12}$/;
+function handleOk(v){
+  if(HANDLE_RE.test(v)) return true;
+  frMsg('아이디는 한글·영문·숫자·밑줄(_)로 2~12자로 정해 주세요!'); return false;
+}
+function setAcct(d){
+  acct.id = d.id; acct.token = d.token; acct.name = d.name; acct.handle = d.h || '';
+  store.set('bc_uid', d.id); store.set('bc_utk', d.token); store.set('bc_uname', d.name);
+  store.set('bc_uh', acct.handle); store.set('bc_nick', d.name);
+}
+function clearAcct(){
+  ['bc_uid','bc_utk','bc_uname','bc_uh'].forEach(k => store.del(k));
+  acct.id = acct.token = null; acct.name = null; acct.handle = ''; acct.data = null;
+  clearTimeout(acct.timer);
+}
 $('frCreate').onclick = () => {
-  const name = $('frName').value.trim().slice(0, 8);
+  const name = $('frName').value.trim().slice(0, 8), hd = $('frHandle').value.trim();
   if(!name){ frMsg('이름을 적어 주세요!'); return; }
+  if(!handleOk(hd)) return;
   $('frCreate').disabled = true; frMsg('');
-  net.call('register', {name}).then(d => {
-    acct.id = d.id; acct.token = d.token; acct.name = d.name;
-    store.set('bc_uid', d.id); store.set('bc_utk', d.token); store.set('bc_uname', d.name); store.set('bc_nick', d.name);
-    SFX.coin(); renderFriends(); acctPoll();
+  net.call('register', {name, handle:hd}).then(d => {
+    setAcct(d); SFX.coin(); frMsg(`🎉 내 아이디는 "${d.h}"예요!`);
+    renderFriends(); acctPoll();
   }).catch(e => frMsg('⚠️ ' + e.message)).finally(() => { $('frCreate').disabled = false; });
 };
-$('frAddId').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); });
-$('frAdd').onclick = () => {
-  const t = $('frAddId').value;
-  if(!/^\d{6}$/.test(t)){ frMsg('친구 아이디 6자리를 입력해 주세요!'); return; }
-  net.call('friendReq', acctAuth({target:t})).then(d => {
-    $('frAddId').value = '';
-    frMsg(d.status==='friends' ? '🎉 친구가 됐어요!' : '📨 친구 신청을 보냈어요! 친구가 수락하면 목록에 나와요.');
-    SFX.pick(); acctPoll();
+$('frSetBtn').onclick = () => {
+  const hd = $('frNewHandle').value.trim();
+  if(!handleOk(hd)) return;
+  net.call('setHandle', acctAuth({handle:hd})).then(d => {
+    acct.handle = d.h; store.set('bc_uh', d.h); SFX.coin();
+    frMsg(`🎉 내 아이디가 "${d.h}"(으)로 정해졌어요!`); renderFriends();
+  }).catch(e => frMsg('⚠️ ' + e.message));
+};
+function doSearch(){
+  const q = $('frQ').value.trim();
+  if(q.length < 2){ frMsg('친구 아이디를 2글자 이상 입력해 주세요!'); return; }
+  frMsg(''); $('frResults').innerHTML = '<div class="empty">찾는 중…</div>';
+  net.call('search', acctAuth({q})).then(d => {
+    const rs = d.results || [];
+    $('frResults').innerHTML = rs.length ? rs.map(r => {
+      const btn = r.rel==='friend' ? '<button class="btn btn-white" disabled>친구예요</button>'
+        : r.rel==='sent' ? '<button class="btn btn-white" disabled>신청함</button>'
+        : r.rel==='incoming' ? `<button class="btn btn-green" data-acc="${esc(r.id)}">수락</button>`
+        : `<button class="btn btn-yellow" data-reqh="${esc(r.h)}">➕ 신청</button>`;
+      return `<div class="fr found"><span class="fn">${esc(r.n)}<small><span class="hd">@${esc(r.h)}</span></small></span>${btn}</div>`;
+    }).join('') : `<div class="empty">"${esc(q)}" 아이디를 찾지 못했어요.<br>철자를 확인해 주세요!</div>`;
+  }).catch(e => { $('frResults').innerHTML = ''; frMsg('⚠️ ' + e.message); });
+}
+$('frSearch').onclick = doSearch;
+$('frQ').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+$('frDeleteMe').onclick = function(){
+  const btn = this;
+  if(!btn.classList.contains('arm')){
+    btn.classList.add('arm'); btn.textContent = '⚠️ 정말 지울까요? 친구 목록도 사라져요 (한 번 더 누르기)';
+    setTimeout(() => { btn.classList.remove('arm'); btn.textContent = '🗑 내 아이디 삭제하기'; }, 3500);
+    return;
+  }
+  btn.classList.remove('arm'); btn.textContent = '🗑 내 아이디 삭제하기';
+  net.call('deleteMe', acctAuth()).then(() => {
+    clearAcct(); updateFriendsBadge(); $('frResults').innerHTML = '';
+    $('frHandle').value = ''; renderFriends();
+    frMsg('🗑 아이디를 지웠어요. 새 아이디를 만들 수 있어요!');
   }).catch(e => frMsg('⚠️ ' + e.message));
 };
 document.querySelector('#friends .card').addEventListener('click', e => {
   const acc = e.target.closest('[data-acc]'), rej = e.target.closest('[data-rej]'),
-        duel = e.target.closest('[data-duel]'), del = e.target.closest('[data-del]');
-  if(acc || rej){
+        duel = e.target.closest('[data-duel]'), del = e.target.closest('[data-del]'), reqh = e.target.closest('[data-reqh]');
+  if(reqh){
+    reqh.disabled = true;
+    net.call('friendReq', acctAuth({handle:reqh.dataset.reqh})).then(d => {
+      reqh.textContent = d.status==='friends' ? '친구예요' : '신청함';
+      frMsg(d.status==='friends' ? '🎉 친구가 됐어요!' : '📨 친구 신청을 보냈어요! 친구가 수락하면 목록에 나와요.');
+      SFX.pick(); acctPoll();
+    }).catch(err => { reqh.disabled = false; frMsg('⚠️ ' + err.message); });
+  } else if(acc || rej){
     const t = (acc || rej).dataset[acc ? 'acc' : 'rej'];
-    net.call('friendAns', acctAuth({target:t, accept:!!acc})).then(() => { if(acc){ SFX.coin(); frMsg('🎉 친구가 됐어요!'); } acctPoll(); })
-      .catch(err => frMsg('⚠️ ' + err.message));
+    net.call('friendAns', acctAuth({target:t, accept:!!acc})).then(() => {
+      if(acc){ SFX.coin(); frMsg('🎉 친구가 됐어요!'); acc.textContent = '친구예요'; acc.disabled = true; }
+      acctPoll();
+    }).catch(err => frMsg('⚠️ ' + err.message));
   } else if(duel){
     sendDuel(duel.dataset.duel);
   } else if(del){
@@ -2695,14 +2762,14 @@ function acctPoll(){
   net.call('me', acctAuth({pid:online.pid})).then(d => {
     acct.data = d;
     if(d.name && d.name !== acct.name){ acct.name = d.name; store.set('bc_uname', d.name); }
+    if(typeof d.h === 'string' && d.h !== acct.handle){ acct.handle = d.h; store.set('bc_uh', d.h); }
     updateFriendsBadge();
     if($('friends').classList.contains('show')) renderFriends();
     handleIncoming(d.challenge);
     handleOutgoing(d.outgoing);
   }).catch(e => {
     if(/아이디를 찾을 수 없/.test(e.message)){
-      ['bc_uid','bc_utk','bc_uname'].forEach(k => store.del(k));
-      acct.id = acct.token = null; acct.data = null; renderFriends(); updateFriendsBadge();
+      clearAcct(); renderFriends(); updateFriendsBadge();
     }
   }).finally(() => {
     if(acct.id) acct.timer = setTimeout(acctPoll, document.hidden ? 15000 : 4000);

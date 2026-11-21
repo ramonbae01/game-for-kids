@@ -276,6 +276,19 @@ function chView_(ch) {
   return { id: ch.id, from: ch.from, fromName: ch.fromName, to: ch.to, tc: ch.tc, skin: ch.skin,
            status: ch.status, room: ch.room || null, reason: ch.reason || '' };
 }
+/* 글자 아이디: 한글·영문·숫자·_ 2~12자, 대소문자 구분 없이 하나뿐 */
+function cleanHandle_(x) {
+  x = String(x || '').trim();
+  if (!/^[0-9A-Za-z가-힣_]{2,12}$/.test(x)) throw new Error('아이디는 한글·영문·숫자·밑줄(_)로 2~12자예요');
+  return x;
+}
+function handleKey_(x) { return 'H_' + String(x).toLowerCase(); }
+function idByHandle_(x) { return props_().getProperty(handleKey_(x)); }
+function userView_(id) {
+  var t = getUser_(id);
+  return t ? { id: t.id, n: t.n, h: t.h || '' } : null;
+}
+
 function addFriend_(u, f) {
   u.fr = (u.fr || []).filter(function (x) { return x.id !== f.id; });
   u.fr.push({ id: f.id, n: f.n });
@@ -288,25 +301,30 @@ function social_(a, p) {
       return withLock_(function () {
         var id, tries = 0;
         do { id = String(100000 + Math.floor(Math.random() * 900000)); tries++; } while (getUser_(id) && tries < 50);
+        var hd = cleanHandle_(p.handle);
+        if (idByHandle_(hd)) throw new Error('이미 누가 쓰고 있는 아이디예요. 다른 아이디로 해 주세요');
         var token = Utilities.getUuid() + Utilities.getUuid();
-        var u = { id: id, n: cleanName_(p.name), tk: hashTok_(token), fr: [], rq: [], t: Date.now() };
+        var u = { id: id, n: cleanName_(p.name), h: hd, tk: hashTok_(token), fr: [], rq: [], t: Date.now() };
         putUser_(u);
-        return { id: id, token: token, name: u.n };
+        props_().setProperty(handleKey_(hd), id);
+        return { id: id, token: token, name: u.n, h: hd };
       });
     case 'me': {
       var u = auth_(p);
       cache_().put('S_' + u.id, String(Date.now()), TTL_);
-      var friends = (u.fr || []).map(function (f) { return { id: f.id, n: f.n, on: isOnline_(f.id) }; });
-      var requests = (u.rq || []).map(function (rid) { var r = getUser_(rid); return r ? { id: r.id, n: r.n } : null; })
-        .filter(function (x) { return x; });
+      var friends = (u.fr || []).map(function (f) {
+        var t = userView_(f.id) || { id: f.id, n: f.n, h: '' };
+        return { id: f.id, n: t.n, h: t.h, on: isOnline_(f.id) };
+      });
+      var requests = (u.rq || []).map(userView_).filter(function (x) { return x; });
       var inc = chView_(getCh_(cache_().get('CI_' + u.id)));
       if (inc && inc.status !== 'pending') inc = null;
       var out = chView_(getCh_(cache_().get('CO_' + u.id)));
-      return { id: u.id, name: u.n, friends: friends, requests: requests, challenge: inc, outgoing: out };
+      return { id: u.id, name: u.n, h: u.h || '', friends: friends, requests: requests, challenge: inc, outgoing: out };
     }
     case 'friendReq':
       return withLock_(function () {
-        var u = auth_(p), t = getUser_(p.target);
+        var u = auth_(p), t = getUser_(p.handle ? idByHandle_(p.handle) : p.target);
         if (!t) throw new Error('그 아이디의 친구를 찾을 수 없어요');
         if (t.id === u.id) throw new Error('내 아이디예요! 친구 아이디를 입력해 주세요');
         if ((u.fr || []).some(function (f) { return f.id === t.id; })) throw new Error('이미 친구예요');
@@ -378,6 +396,50 @@ function social_(a, p) {
       return withLock_(function () {
         var u = auth_(p), ch = getCh_(String(p.chId));
         if (ch && ch.from === u.id && ch.status === 'pending') { ch.status = 'canceled'; putCh_(ch); cache_().remove('CI_' + ch.to); }
+        return { ok: true };
+      });
+    case 'setHandle':
+      return withLock_(function () {
+        var u = auth_(p), hd = cleanHandle_(p.handle), owner = idByHandle_(hd);
+        if (owner && owner !== u.id) throw new Error('이미 누가 쓰고 있는 아이디예요. 다른 아이디로 해 주세요');
+        if (u.h && handleKey_(u.h) !== handleKey_(hd)) props_().deleteProperty(handleKey_(u.h));
+        u.h = hd; putUser_(u);
+        props_().setProperty(handleKey_(hd), u.id);
+        return { h: hd };
+      });
+    case 'search': {
+      var me = auth_(p), q = String(p.q || '').trim().toLowerCase();
+      if (q.length < 2) throw new Error('아이디를 2글자 이상 입력해 주세요');
+      var found = [], seen = {};
+      var exact = idByHandle_(q);
+      if (exact) { found.push(exact); seen[exact] = 1; }
+      props_().getKeys().forEach(function (k) {
+        if (found.length >= 5 || k.indexOf('H_' + q) !== 0) return;
+        var id = props_().getProperty(k);
+        if (id && !seen[id]) { found.push(id); seen[id] = 1; }
+      });
+      var list = found.filter(function (id) { return id !== me.id; }).map(function (id) {
+        var t = getUser_(id); if (!t) return null;
+        var rel = (me.fr || []).some(function (f) { return f.id === id; }) ? 'friend'
+                : (t.rq || []).indexOf(me.id) >= 0 ? 'sent'
+                : (me.rq || []).indexOf(id) >= 0 ? 'incoming' : 'none';
+        return { id: t.id, n: t.n, h: t.h || '', rel: rel };
+      }).filter(function (x) { return x; });
+      return { results: list };
+    }
+    case 'deleteMe':
+      return withLock_(function () {
+        var u = auth_(p), all = props_().getProperties();
+        Object.keys(all).forEach(function (k) {       // 다른 친구들 목록에서 나를 빼요
+          if (k.indexOf('U_') !== 0 || k === 'U_' + u.id) return;
+          var t = JSON.parse(all[k]), changed = false;
+          var fr = (t.fr || []).filter(function (f) { return f.id !== u.id; });
+          var rq = (t.rq || []).filter(function (x) { return x !== u.id; });
+          if (fr.length !== (t.fr || []).length || rq.length !== (t.rq || []).length) { t.fr = fr; t.rq = rq; putUser_(t); }
+        });
+        if (u.h) props_().deleteProperty(handleKey_(u.h));
+        props_().deleteProperty('U_' + u.id);
+        cache_().removeAll(['U_' + u.id, 'S_' + u.id, 'CI_' + u.id, 'CO_' + u.id]);
         return { ok: true };
       });
     case 'putimg': {

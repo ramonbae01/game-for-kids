@@ -282,6 +282,29 @@ def ch_view(ch):
     return {k: ch.get(k) for k in ('id', 'from', 'fromName', 'to', 'tc', 'skin', 'status', 'room', 'reason')}
 
 
+HANDLE_RE = re.compile(r'[0-9A-Za-z가-힣_]{2,12}')
+
+
+def clean_handle(x):
+    x = str(x or '').strip()
+    if not HANDLE_RE.fullmatch(x):
+        raise ApiError('아이디는 한글·영문·숫자·밑줄(_)로 2~12자예요')
+    return x
+
+
+def id_by_handle(x):
+    x = str(x or '').lower()
+    for uid, u in USERS.items():
+        if u.get('h', '').lower() == x:
+            return uid
+    return None
+
+
+def user_view(uid):
+    t = USERS.get(uid)
+    return {'id': t['id'], 'n': t['n'], 'h': t.get('h', '')} if t else None
+
+
 def add_friend(u, f):
     u['fr'] = [x for x in u.get('fr', []) if x['id'] != f['id']] + [{'id': f['id'], 'n': f['n']}]
     u['rq'] = [x for x in u.get('rq', []) if x != f['id']]
@@ -293,25 +316,31 @@ def social(a, p):
             uid = str(random.randint(100000, 999999))
             if uid not in USERS:
                 break
+        hd = clean_handle(p.get('handle'))
+        if id_by_handle(hd):
+            raise ApiError('이미 누가 쓰고 있는 아이디예요. 다른 아이디로 해 주세요')
         token = secrets.token_hex(24)
-        USERS[uid] = {'id': uid, 'n': clean_name(p.get('name')), 'tk': hash_tok(token), 'fr': [], 'rq': [], 't': time.time()}
+        USERS[uid] = {'id': uid, 'n': clean_name(p.get('name')), 'h': hd, 'tk': hash_tok(token),
+                      'fr': [], 'rq': [], 't': time.time()}
         save_users()
-        return {'id': uid, 'token': token, 'name': USERS[uid]['n']}
+        return {'id': uid, 'token': token, 'name': USERS[uid]['n'], 'h': hd}
 
     if a == 'me':
         u = auth(p)
         USEEN[u['id']] = time.time()
-        friends = [{'id': f['id'], 'n': f['n'], 'on': is_online(f['id'])} for f in u.get('fr', [])]
-        requests = [{'id': USERS[r]['id'], 'n': USERS[r]['n']} for r in u.get('rq', []) if r in USERS]
+        friends = [dict(user_view(f['id']) or {'id': f['id'], 'n': f['n'], 'h': ''}, on=is_online(f['id']))
+                   for f in u.get('fr', [])]
+        requests = [user_view(r) for r in u.get('rq', []) if r in USERS]
         inc = ch_view(CHS.get(CH_IN.get(u['id'])))
         if inc and inc['status'] != 'pending':
             inc = None
         out = ch_view(CHS.get(CH_OUT.get(u['id'])))
-        return {'id': u['id'], 'name': u['n'], 'friends': friends, 'requests': requests, 'challenge': inc, 'outgoing': out}
+        return {'id': u['id'], 'name': u['n'], 'h': u.get('h', ''), 'friends': friends, 'requests': requests,
+                'challenge': inc, 'outgoing': out}
 
     if a == 'friendReq':
         u = auth(p)
-        t = USERS.get(str(p.get('target', '')))
+        t = USERS.get(id_by_handle(p.get('handle')) if p.get('handle') else str(p.get('target', '')))
         if not t:
             raise ApiError('그 아이디의 친구를 찾을 수 없어요')
         if t['id'] == u['id']:
@@ -404,6 +433,46 @@ def social(a, p):
         if ch and ch['from'] == u['id'] and ch['status'] == 'pending':
             ch['status'] = 'canceled'
             CH_IN.pop(ch['to'], None)
+        return {'ok': True}
+
+    if a == 'setHandle':
+        u = auth(p)
+        hd = clean_handle(p.get('handle'))
+        owner = id_by_handle(hd)
+        if owner and owner != u['id']:
+            raise ApiError('이미 누가 쓰고 있는 아이디예요. 다른 아이디로 해 주세요')
+        u['h'] = hd
+        save_users()
+        return {'h': hd}
+
+    if a == 'search':
+        me = auth(p)
+        q = str(p.get('q', '')).strip().lower()
+        if len(q) < 2:
+            raise ApiError('아이디를 2글자 이상 입력해 주세요')
+        exact = [uid for uid, x in USERS.items() if x.get('h', '').lower() == q]
+        pre = [uid for uid, x in USERS.items() if x.get('h', '').lower().startswith(q) and uid not in exact]
+        out = []
+        for uid in (exact + pre)[:6]:
+            if uid == me['id']:
+                continue
+            t = USERS[uid]
+            rel = ('friend' if any(f['id'] == uid for f in me.get('fr', [])) else
+                   'sent' if me['id'] in t.get('rq', []) else
+                   'incoming' if uid in me.get('rq', []) else 'none')
+            out.append({'id': uid, 'n': t['n'], 'h': t.get('h', ''), 'rel': rel})
+        return {'results': out[:5]}
+
+    if a == 'deleteMe':
+        u = auth(p)
+        for t in USERS.values():
+            t['fr'] = [f for f in t.get('fr', []) if f['id'] != u['id']]
+            t['rq'] = [x for x in t.get('rq', []) if x != u['id']]
+        USERS.pop(u['id'], None)
+        USEEN.pop(u['id'], None)
+        CH_IN.pop(u['id'], None)
+        CH_OUT.pop(u['id'], None)
+        save_users()
         return {'ok': True}
 
     if a == 'putimg':
