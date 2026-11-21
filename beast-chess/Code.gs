@@ -3,6 +3,14 @@
  * - index (HTML) : 게임 화면
  * - api()        : 온라인 대결용 방 관리 (CacheService에 저장, 최대 6시간 유지)
  */
+/* 안드로이드 앱이 큰 데이터(사진 말)를 보낼 때: POST {api, p} */
+function doPost(e) {
+  var body = {};
+  try { body = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) {}
+  return ContentService.createTextOutput(api(String(body.api || ''), body.p || {}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function doGet(e) {
   // 안드로이드 앱의 온라인 대결 요청: ?api=동작&p={JSON}
   if (e && e.parameter && e.parameter.api) {
@@ -52,7 +60,7 @@ function cleanSkin_(s) {
   var o = {};
   ['K', 'Q', 'R', 'B', 'N', 'P'].forEach(function (k) {
     var v = s && s[k];
-    o[k] = (typeof v === 'string' && /^c\d{1,3}$/.test(v)) ? v : null;
+    o[k] = (typeof v === 'string' && /^(c\d{1,3}|u[0-9a-f]{12})$/.test(v)) ? v : null;
   });
   return o;
 }
@@ -213,5 +221,168 @@ function handle_(a, p) {
         return { ok: true };
       });
   }
+  var s = social_(a, p);
+  if (s) return s;
   throw new Error('알 수 없는 요청: ' + a);
+}
+
+/* =========================================================
+   게임 아이디 · 친구 · 결투 신청 · 사진 말
+   - 아이디 정보: ScriptProperties (계속 보관) + Cache (빠른 읽기)
+   - 접속 상태 · 결투 신청 · 사진: Cache (잠깐 보관)
+   ========================================================= */
+var ONLINE_MS_ = 25000, CH_MS_ = 45000;
+function props_() { return PropertiesService.getScriptProperties(); }
+function getUser_(id) {
+  id = String(id || '');
+  if (!/^\d{6}$/.test(id)) return null;
+  var c = cache_().get('U_' + id);
+  if (c) return JSON.parse(c);
+  var s = props_().getProperty('U_' + id);
+  if (!s) return null;
+  cache_().put('U_' + id, s, TTL_);
+  return JSON.parse(s);
+}
+function putUser_(u) {
+  var s = JSON.stringify(u);
+  props_().setProperty('U_' + u.id, s);
+  cache_().put('U_' + u.id, s, TTL_);
+}
+function hashTok_(t) {
+  return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(t || '')));
+}
+function auth_(p) {
+  var u = getUser_(p.id);
+  if (!u || u.tk !== hashTok_(p.token)) throw new Error('아이디를 찾을 수 없어요. 다시 만들어 주세요');
+  return u;
+}
+function isOnline_(id) {
+  var t = cache_().get('S_' + id);
+  return !!t && Date.now() - Number(t) < ONLINE_MS_;
+}
+function getCh_(id) { var s = id && cache_().get('CH_' + id); return s ? JSON.parse(s) : null; }
+function putCh_(ch) { cache_().put('CH_' + ch.id, JSON.stringify(ch), 600); }
+function chView_(ch) {
+  if (!ch) return null;
+  if (ch.status === 'pending' && Date.now() - ch.t > CH_MS_) ch.status = 'expired';
+  return { id: ch.id, from: ch.from, fromName: ch.fromName, to: ch.to, tc: ch.tc, skin: ch.skin,
+           status: ch.status, room: ch.room || null, reason: ch.reason || '' };
+}
+function addFriend_(u, f) {
+  u.fr = (u.fr || []).filter(function (x) { return x.id !== f.id; });
+  u.fr.push({ id: f.id, n: f.n });
+  u.rq = (u.rq || []).filter(function (x) { return x !== f.id; });
+}
+
+function social_(a, p) {
+  switch (a) {
+    case 'register':
+      return withLock_(function () {
+        var id, tries = 0;
+        do { id = String(100000 + Math.floor(Math.random() * 900000)); tries++; } while (getUser_(id) && tries < 50);
+        var token = Utilities.getUuid() + Utilities.getUuid();
+        var u = { id: id, n: cleanName_(p.name), tk: hashTok_(token), fr: [], rq: [], t: Date.now() };
+        putUser_(u);
+        return { id: id, token: token, name: u.n };
+      });
+    case 'me': {
+      var u = auth_(p);
+      cache_().put('S_' + u.id, String(Date.now()), TTL_);
+      var friends = (u.fr || []).map(function (f) { return { id: f.id, n: f.n, on: isOnline_(f.id) }; });
+      var requests = (u.rq || []).map(function (rid) { var r = getUser_(rid); return r ? { id: r.id, n: r.n } : null; })
+        .filter(function (x) { return x; });
+      var inc = chView_(getCh_(cache_().get('CI_' + u.id)));
+      if (inc && inc.status !== 'pending') inc = null;
+      var out = chView_(getCh_(cache_().get('CO_' + u.id)));
+      return { id: u.id, name: u.n, friends: friends, requests: requests, challenge: inc, outgoing: out };
+    }
+    case 'friendReq':
+      return withLock_(function () {
+        var u = auth_(p), t = getUser_(p.target);
+        if (!t) throw new Error('그 아이디의 친구를 찾을 수 없어요');
+        if (t.id === u.id) throw new Error('내 아이디예요! 친구 아이디를 입력해 주세요');
+        if ((u.fr || []).some(function (f) { return f.id === t.id; })) throw new Error('이미 친구예요');
+        if ((u.rq || []).indexOf(t.id) >= 0) {     // 상대가 먼저 신청했으면 바로 친구
+          addFriend_(u, t); addFriend_(t, u); putUser_(u); putUser_(t);
+          return { status: 'friends' };
+        }
+        t.rq = t.rq || [];
+        if (t.rq.indexOf(u.id) < 0) { t.rq.push(u.id); t.rq = t.rq.slice(-30); putUser_(t); }
+        return { status: 'sent' };
+      });
+    case 'friendAns':
+      return withLock_(function () {
+        var u = auth_(p), t = getUser_(p.target);
+        u.rq = (u.rq || []).filter(function (x) { return x !== String(p.target); });
+        if (p.accept && t) { addFriend_(u, t); addFriend_(t, u); putUser_(t); }
+        putUser_(u);
+        return { ok: true };
+      });
+    case 'unfriend':
+      return withLock_(function () {
+        var u = auth_(p), t = getUser_(p.target);
+        u.fr = (u.fr || []).filter(function (f) { return f.id !== String(p.target); });
+        putUser_(u);
+        if (t) { t.fr = (t.fr || []).filter(function (f) { return f.id !== u.id; }); putUser_(t); }
+        return { ok: true };
+      });
+    case 'challenge':
+      return withLock_(function () {
+        var u = auth_(p), tid = String(p.target);
+        var f = (u.fr || []).filter(function (x) { return x.id === tid; })[0];
+        if (!f) throw new Error('친구에게만 결투를 신청할 수 있어요');
+        if (!isOnline_(tid)) throw new Error('친구가 지금 접속해 있지 않아요');
+        var cur = chView_(getCh_(cache_().get('CI_' + tid)));
+        if (cur && cur.status === 'pending' && cur.from !== u.id) throw new Error('친구가 다른 신청을 보고 있어요. 잠시 뒤에 다시 해요!');
+        var ch = { id: Utilities.getUuid().slice(0, 12), from: u.id, fromName: u.n, to: tid, toName: f.n,
+                   tc: TC_OK_.indexOf(Number(p.tc)) >= 0 ? Number(p.tc) : 0, pid: String(p.pid || ''),
+                   skin: cleanSkin_(p.skin), status: 'pending', t: Date.now() };
+        putCh_(ch);
+        cache_().put('CI_' + tid, ch.id, 600);
+        cache_().put('CO_' + u.id, ch.id, 600);
+        return { ch: chView_(ch) };
+      });
+    case 'chAnswer':
+      return withLock_(function () {
+        var u = auth_(p), ch = getCh_(String(p.chId));
+        if (!ch || ch.to !== u.id) throw new Error('결투 신청을 찾을 수 없어요');
+        var v = chView_(ch);
+        if (v.status !== 'pending') throw new Error(v.status === 'canceled' ? '친구가 신청을 취소했어요' : '결투 신청 시간이 지났어요');
+        var room = null;
+        if (p.accept) {
+          var code;
+          do { code = String(1000 + Math.floor(Math.random() * 9000)); } while (getRoom_(code));
+          room = { code: code, gid: 1, ver: 0, status: 'playing',
+                   players: { w: { pid: ch.pid, name: ch.fromName, skin: ch.skin },
+                              b: { pid: String(p.pid || ''), name: u.n, skin: cleanSkin_(p.skin) } },
+                   moves: [], result: null, rematch: {}, tc: ch.tc, clock: null };
+          room.clock = freshClock_(room);
+          putRoom_(room);
+          ch.status = 'accepted'; ch.room = code;
+        } else {
+          ch.status = 'declined'; ch.reason = p.busy ? 'busy' : '';
+        }
+        putCh_(ch);
+        cache_().remove('CI_' + u.id);
+        return { ch: chView_(ch), room: room ? pub_(room) : null };
+      });
+    case 'chCancel':
+      return withLock_(function () {
+        var u = auth_(p), ch = getCh_(String(p.chId));
+        if (ch && ch.from === u.id && ch.status === 'pending') { ch.status = 'canceled'; putCh_(ch); cache_().remove('CI_' + ch.to); }
+        return { ok: true };
+      });
+    case 'putimg': {
+      var hsh = String(p.hash || ''), data = String(p.data || '');
+      if (!/^u[0-9a-f]{12}$/.test(hsh) || data.indexOf('data:image/') !== 0 || data.length > 95000) throw new Error('사진을 올릴 수 없어요');
+      cache_().put('IMG_' + hsh, data, TTL_);
+      return { ok: true };
+    }
+    case 'getimg': {
+      var g = String(p.hash || '');
+      if (!/^u[0-9a-f]{12}$/.test(g)) return { data: null };
+      return { data: cache_().get('IMG_' + g) };
+    }
+  }
+  return null;
 }

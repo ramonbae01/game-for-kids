@@ -282,7 +282,7 @@ input{font-family:inherit;color:var(--ink)}
 .menu-card .level-row .btn{padding:clamp(8px,1.6vh,14px) 4px;font-size:clamp(15px,4.2vw,19px)}
 .menu-card .tc-row{margin:clamp(10px,2vh,16px) 0 clamp(10px,2vh,14px)}
 .menu-card .menu-row{display:flex;gap:8px;margin:0}
-.menu-card .menu-row .btn{flex:1;min-width:0;font-size:clamp(14px,3.9vw,18px);padding:clamp(8px,1.5vh,12px) 4px;line-height:1.15;white-space:nowrap}
+.menu-card .menu-row .btn{flex:1;min-width:0;font-size:clamp(13px,3.6vw,18px);padding:clamp(8px,1.5vh,12px) 4px;line-height:1.15;white-space:nowrap}
 .menu-card .menu-row .btn small{font-size:11px}
 /* 가로로 눕힌 휴대폰: 제목은 왼쪽, 버튼은 오른쪽 */
 @media (orientation:landscape) and (max-height:560px){
@@ -350,6 +350,73 @@ input{font-family:inherit;color:var(--ink)}
   box-shadow:0 0 0 9px #ffd23f, 0 0 0 13px #2b2340, 0 0 110px 44px rgba(190,140,255,.9);animation:medalIn 1.2s cubic-bezier(.18,1.5,.4,1) both, medalBob 1.2s ease-in-out 1.2s infinite}
 .bfx.tier-H .head{color:#fff1a8}
 
+/* 사진 말 만들기 */
+.gal.mk{background:#fff8d6;border:3px dashed #e0a800}
+.gal .mkicon{width:100%;aspect-ratio:1;display:grid;place-items:center;font-size:34px}
+.gal .del{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid var(--ink);
+  font-size:12px;line-height:18px;text-align:center;z-index:2}
+.gal .del.arm{background:#ff3b5c;color:#fff;width:auto;padding:0 6px;border-radius:10px}
+.mk-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.mk-btns .btn{font-size:18px;display:flex;align-items:center;justify-content:center;gap:6px}
+.mk-stage{width:min(300px,76vw);aspect-ratio:1;margin:6px auto;border-radius:18px;overflow:hidden;border:3px solid var(--ink);background:#333;touch-action:none}
+.mk-stage canvas{width:100%;height:100%;display:block;touch-action:none}
+.mk-zoom{display:flex;align-items:center;gap:8px;margin:8px 4px;font-size:18px}
+.mk-zoom input{flex:1}
+.mk-tip{font-size:14px;opacity:.8;margin:4px 0 6px}
+
+/* 친구 */
+.fr-card{max-width:520px;text-align:center}
+.myid{background:#fff3b0;border:3px solid var(--ink);border-radius:16px;padding:8px 12px;font-size:17px}
+.myid b{font-family:'Black Han Sans',sans-serif;font-size:30px;letter-spacing:3px;color:var(--blue);font-weight:normal;margin:0 6px}
+.fr-list{display:grid;gap:8px;text-align:left;min-height:40px}
+.fr{display:flex;align-items:center;gap:8px;background:#f5f8ff;border:3px solid var(--ink);border-radius:16px;padding:6px 8px}
+.fr .dot{width:12px;height:12px;border-radius:50%;background:#c7cde3;flex:0 0 12px;border:2px solid var(--ink)}
+.fr .dot.on{background:#3ddc84;box-shadow:0 0 0 3px rgba(61,220,132,.35)}
+.fr .fn{flex:1;min-width:0;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr .fn small{display:block;font-size:12px;opacity:.7}
+.fr .btn{font-size:15px;padding:7px 10px;box-shadow:0 3px 0 var(--ink)}
+.fr .x{background:#fff;border:2px solid #c7cde3;border-radius:10px;font-size:13px;padding:6px 8px}
+.fr .x.arm{background:#ff3b5c;color:#fff;border-color:#b0102e}
+.fr.req{background:#fff3b0}
+.badge-dot{display:inline-block;min-width:18px;height:18px;border-radius:9px;background:#ff3b5c;color:#fff;font-size:12px;line-height:18px;padding:0 5px;margin-left:2px}
+
+/* 결투 신청 */
+.duel{position:fixed;inset:0;z-index:95;display:none;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,2vh,16px);
+  padding:16px;overflow:hidden;text-align:center;background:radial-gradient(circle at 50% 40%, rgba(150,20,30,.96), rgba(25,4,10,.98))}
+.duel.show{display:flex;animation:duelShake .55s cubic-bezier(.36,.07,.19,.97) .1s}
+@keyframes duelShake{10%,90%{transform:translate(-3px,2px)}20%,80%{transform:translate(8px,-4px) rotate(1deg)}30%,50%,70%{transform:translate(-14px,6px) rotate(-1.5deg)}40%,60%{transform:translate(14px,-6px) rotate(1.5deg)}}
+.duel .rays{position:absolute;left:50%;top:40%;width:180vmax;height:180vmax;margin:-90vmax 0 0 -90vmax;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg, rgba(255,120,40,.28) 0deg 8deg, rgba(255,120,40,0) 8deg 16deg);
+  -webkit-mask:radial-gradient(circle, #000 0 10%, transparent 45%);mask:radial-gradient(circle, #000 0 10%, transparent 45%);animation:raySpin 4s linear infinite}
+.duel .flash{position:absolute;inset:0;background:#fff;pointer-events:none;animation:bfxFlash .45s ease-out forwards}
+.duel > *:not(.rays):not(.flash){position:relative;z-index:2}
+.duel-title{font-family:'Black Han Sans',sans-serif;font-size:clamp(46px,14vw,92px);line-height:1;color:#ffd23f;
+  -webkit-text-stroke:4px #2b2340;paint-order:stroke fill;text-shadow:0 8px 0 #2b2340, 0 0 40px rgba(255,80,40,.9);
+  animation:duelSlam .6s cubic-bezier(.2,1.6,.35,1) both}
+@keyframes duelSlam{0%{transform:scale(4) rotate(-12deg);opacity:0}55%{transform:scale(.85) rotate(3deg);opacity:1}75%{transform:scale(1.08) rotate(-2deg)}100%{transform:scale(1) rotate(-3deg)}}
+.duel-vs{display:flex;align-items:center;justify-content:center;gap:clamp(6px,3vw,20px);width:100%;max-width:520px}
+.dv{flex:1;display:flex;flex-direction:column;align-items:center}
+.dv-av{width:clamp(90px,28vw,150px);aspect-ratio:1;border-radius:24px;background:#fff;border:4px solid #2b2340;box-shadow:0 6px 0 #2b2340;display:grid;place-items:center}
+.dv-av svg{width:90%;height:90%}
+.dv:first-child{animation:slideL .55s cubic-bezier(.2,1.4,.4,1) .35s both}
+.dv:last-child{animation:slideR .55s cubic-bezier(.2,1.4,.4,1) .35s both}
+@keyframes slideL{from{transform:translateX(-120vw) rotate(-20deg)}}
+@keyframes slideR{from{transform:translateX(120vw) rotate(20deg)}}
+.dv-n{margin-top:8px;font-size:clamp(18px,5vw,24px);color:#fff;-webkit-text-stroke:1px #2b2340}
+.vs{font-family:'Black Han Sans',sans-serif;font-size:clamp(40px,12vw,70px);color:#fff;-webkit-text-stroke:3px #2b2340;paint-order:stroke fill;
+  text-shadow:0 0 30px #ff5a1f;animation:vsPop .5s cubic-bezier(.2,1.8,.4,1) .75s both, vsPulse 1s ease-in-out 1.3s infinite}
+@keyframes vsPop{from{transform:scale(0) rotate(180deg)}}
+@keyframes vsPulse{50%{transform:scale(1.15)}}
+.duel-msg{font-size:clamp(17px,4.6vw,22px);color:#fff7d6;animation:fadeUp .4s ease-out .9s both}
+.duel-btns{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;width:100%;max-width:420px;animation:fadeUp .4s ease-out 1s both}
+.duel-btns .btn{font-size:clamp(20px,5.6vw,26px);padding:14px 8px}
+#duelYes{animation:yesPulse 1s ease-in-out 1.4s infinite}
+@keyframes yesPulse{50%{transform:scale(1.07);box-shadow:0 5px 0 var(--ink),0 0 24px #5fe08f}}
+.duel-timer{width:100%;max-width:420px;height:10px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden}
+.duel-timer i{display:block;height:100%;background:#ffd23f;width:100%}
+.bolt{position:absolute;font-size:clamp(40px,12vw,80px);z-index:1;pointer-events:none;animation:boltIn .5s ease-out both}
+@keyframes boltIn{0%{opacity:0;transform:scale(2.4)}40%{opacity:1}100%{opacity:.85;transform:scale(1)}}
+
 /* 메뉴 시트 */
 .sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 12px}
 .sheet-grid .btn{font-size:18px;padding:14px 6px}
@@ -412,8 +479,9 @@ input{font-family:inherit;color:var(--ink)}
       <div class="tc-row" id="tcMenu"></div>
       <div class="menu-row">
         <button class="btn btn-yellow" id="mPick">🎨 캐릭터</button>
+        <button class="btn btn-blue" id="mFriends">👥 친구</button>
         <button class="btn btn-white" id="mRec">🏆 내 기록</button>
-        <button class="btn btn-green" id="mApp">📱 앱 설치</button>
+        <button class="btn btn-green" id="mApp">📱 앱</button>
       </div>
     </div>
   </div>
@@ -519,6 +587,81 @@ input{font-family:inherit;color:var(--ink)}
     </div>
     <button class="btn btn-white wide" id="appClose">닫기</button>
   </div>
+</div>
+
+<!-- 사진으로 말 만들기 -->
+<div class="overlay" id="maker">
+  <div class="card">
+    <h2>📷 사진으로 말 만들기</h2>
+    <div id="mkStep1">
+      <p>사진을 찍거나 앨범에서 골라요!<br><small>얼굴이나 장난감을 가까이서 찍으면 예뻐요</small></p>
+      <div class="mk-btns">
+        <label class="btn btn-blue">📷 사진 찍기<input type="file" accept="image/*" capture="environment" id="mkCam" hidden></label>
+        <label class="btn btn-yellow">🖼️ 앨범에서<input type="file" accept="image/*" id="mkAlb" hidden></label>
+      </div>
+    </div>
+    <div id="mkStep2" hidden>
+      <div class="mk-stage"><canvas id="mkCanvas" width="600" height="600"></canvas></div>
+      <div class="mk-zoom">🔍<input type="range" id="mkZoom" min="1" max="4" step="0.01" value="1"></div>
+      <p class="mk-tip">👆 끌어서 동그라미 안에 맞추고, 🔍로 크기를 바꿔요</p>
+      <div class="field"><label for="mkName">이름</label><input id="mkName" maxlength="8" placeholder="예: 우리 고양이"></div>
+      <div class="mk-btns">
+        <button class="btn btn-white" id="mkRetry">↩️ 다시 고르기</button>
+        <button class="btn btn-green" id="mkSave">✅ 저장!</button>
+      </div>
+    </div>
+    <div class="net-msg" id="mkMsg"></div>
+    <button class="btn btn-white wide" id="mkClose">닫기</button>
+  </div>
+</div>
+
+<!-- 친구 -->
+<div class="overlay" id="friends">
+  <div class="card fr-card">
+    <h2>👥 친구</h2>
+    <div id="frSignup">
+      <p>친구랑 대결하려면 나만의 <b>게임 아이디</b>가 필요해요!</p>
+      <div class="field"><label for="frName">내 이름</label><input id="frName" maxlength="8" autocomplete="off" placeholder="이름"></div>
+      <button class="btn btn-blue wide" id="frCreate">🆔 게임 아이디 만들기</button>
+    </div>
+    <div id="frMain" hidden>
+      <div class="myid">내 아이디<b id="frMyId">------</b><span id="frMyName"></span></div>
+      <p class="mk-tip">친구에게 내 아이디를 알려 주세요!</p>
+      <div class="field"><input id="frAddId" inputmode="numeric" maxlength="6" placeholder="친구 아이디 6자리"><button class="btn btn-yellow" id="frAdd" style="font-size:16px;padding:10px 12px">➕ 친구 신청</button></div>
+      <div class="fr-list" id="frReqs"></div>
+      <div class="sub">👥 내 친구 <small style="opacity:.7">· 🟢 지금 접속 중</small></div>
+      <div class="fr-list" id="frList"></div>
+    </div>
+    <div class="net-msg" id="frMsg"></div>
+    <button class="btn btn-white wide" id="frClose">닫기</button>
+  </div>
+</div>
+
+<!-- 결투 신청 보내는 중 -->
+<div class="overlay" id="duelOut">
+  <div class="card">
+    <h2>⚔️ 결투 신청 중!</h2>
+    <p id="duelOutMsg">친구의 대답을 기다리고 있어요…</p>
+    <div class="dots"><i></i><i></i><i></i></div>
+    <button class="btn btn-white wide" id="duelOutCancel">신청 취소</button>
+  </div>
+</div>
+
+<!-- 결투 신청 받음 -->
+<div class="duel" id="duelIn">
+  <div class="rays"></div>
+  <div class="duel-title">⚔️ 결투 신청!</div>
+  <div class="duel-vs">
+    <div class="dv"><div class="dv-av" id="dvA"></div><div class="dv-n" id="dvAn"></div></div>
+    <div class="vs">VS</div>
+    <div class="dv"><div class="dv-av" id="dvB"></div><div class="dv-n">나</div></div>
+  </div>
+  <div class="duel-msg" id="duelMsg"></div>
+  <div class="duel-btns">
+    <button class="btn btn-green" id="duelYes">⚔️ 수락!</button>
+    <button class="btn btn-white" id="duelNo">거절</button>
+  </div>
+  <div class="duel-timer"><i id="duelBar"></i></div>
 </div>
 
 <!-- 기록 -->
@@ -912,7 +1055,31 @@ CHARS.forEach(c => CHAR_BY_ID[c.id] = c);
   sp.innerHTML = '<defs>' + CHARS.map(c =>
     `<image id="ch-${c.id}" href="${c.src}" width="100" height="100" preserveAspectRatio="xMidYMax meet"/>`).join('') + '</defs>';
   document.body.appendChild(sp);
+  window.__spriteDefs = sp.querySelector('defs');
 })();
+
+/* 내가 사진으로 만든 말 (이 기기에 저장) + 친구에게 받은 사진 말 */
+const CUSTOM_KEY = 'bc_custom_v1';
+let myCustom = (() => { try{ return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; }catch(e){ return []; } })();
+function saveCustom(){
+  try{ localStorage.setItem(CUSTOM_KEY, JSON.stringify(myCustom)); return true; }
+  catch(e){ return false; }
+}
+function addCharRuntime(c){
+  if(CHAR_BY_ID[c.id]) return;
+  CHARS.unshift(c); CHAR_BY_ID[c.id] = c;
+  const im = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  im.setAttribute('id', 'ch-' + c.id); im.setAttribute('href', c.src);
+  im.setAttribute('width', '100'); im.setAttribute('height', '100');
+  im.setAttribute('preserveAspectRatio', 'xMidYMax meet');
+  window.__spriteDefs.appendChild(im);
+}
+function removeCharRuntime(id){
+  const i = CHARS.findIndex(c => c.id===id); if(i >= 0) CHARS.splice(i, 1);
+  delete CHAR_BY_ID[id];
+  const el = document.getElementById('ch-' + id); if(el) el.remove();
+}
+myCustom.slice().reverse().forEach(c => addCharRuntime(Object.assign({mine:true}, c)));
 
 const ROLES = ['K','Q','R','B','N','P'];
 const GLYPH = {K:'\u265A', Q:'\u265B', R:'\u265C', B:'\u265D', N:'\u265E', P:'\u265F'};
@@ -1369,7 +1536,7 @@ function lobbyBusy(b){ ['lCreate','lJoin'].forEach(id => $(id).disabled = b); $(
 function createRoom(){
   tryFullscreen();
   lobbyBusy(true); $('netMsg').textContent = '';
-  net.call('create', {pid:online.pid, name:getNick(), skin:skins.A, tc:tcSetting})
+  uploadMyImages().then(() => net.call('create', {pid:online.pid, name:getNick(), skin:skins.A, tc:tcSetting}))
     .then(d => enterRoom(d.room))
     .catch(e => { $('netMsg').textContent = '⚠️ ' + e.message; })
     .finally(() => lobbyBusy(false));
@@ -1379,7 +1546,7 @@ function joinRoom(code){
   if(!/^\d{4}$/.test(code)){ $('netMsg').textContent = '방 번호 4자리를 입력해 주세요!'; return; }
   tryFullscreen();
   lobbyBusy(true); $('netMsg').textContent = '';
-  net.call('join', {code, pid:online.pid, name:getNick(), skin:skins.A})
+  uploadMyImages().then(() => net.call('join', {code, pid:online.pid, name:getNick(), skin:skins.A}))
     .then(d => enterRoom(d.room))
     .catch(e => { $('netMsg').textContent = '⚠️ ' + e.message; })
     .finally(() => lobbyBusy(false));
@@ -1430,6 +1597,7 @@ function handleRoom(room){
   if(!room || !online.code || room.code!==online.code) return;
   if(online.room && room.ver < online.room.ver) return;
   online.room = room;
+  fetchRoomImages(room);
   if(room.now) online.offset = room.now - Date.now();
   if(room.status==='waiting'){
     $('waitCode').textContent = room.code; show('wait'); return;
@@ -1445,7 +1613,8 @@ function handleRoom(room){
     mode = 'online'; myColor = me; flip = me==='b';
     resetLocal(); online.applied = 0; online.gid = room.gid;
     for(const raw of room.moves){ const m = resolveMove(raw); if(!m) break; applyMove(m, true); }
-    ['menu','lobby','wait','result','sheet','promo'].forEach(hide);
+    ['menu','lobby','wait','result','sheet','promo','pick','records','guide','friends','duelOut','maker','appDl'].forEach(hide);
+    closeDuelIn();
     render();
     const e = gameEnd();
     if(e){ over = true; render(); showResult(e.winner, e.msg, null, true); }
@@ -1636,11 +1805,12 @@ function renderPick(){
   const cur = sk[pickState.slot];
   const c = teamColorOf(pickState.team);
   $('gallery').innerHTML =
+    `<button class="gal mk" data-make="1"><div class="mkicon">📷</div><span>사진으로 만들기</span></button>` +
     `<button class="gal${!cur ? ' cur' : ''}" data-id="">${drawSVG(pickState.slot, c)}<span>기본 그림</span></button>` +
     CHARS.map(ch => {
       const role = ROLES.find(r => sk[r]===ch.id);
       return `<button class="gal${ch.id===cur ? ' cur' : (used.has(ch.id) ? ' used' : '')}" data-id="${ch.id}">
-        ${role ? `<span class="tag">${INFO[role].chess}</span>` : ''}<img src="${ch.src}" alt="" loading="lazy"><span>${esc(ch.n)}</span></button>`;
+        ${role ? `<span class="tag">${INFO[role].chess}</span>` : ''}${ch.mine ? `<span class="del" data-del="${ch.id}">✕</span>` : ''}<img src="${ch.src}" alt="" loading="lazy"><span>${esc(ch.n)}</span></button>`;
     }).join('');
 }
 function openPick(from, team){
@@ -1657,7 +1827,10 @@ $('slots').addEventListener('click', e => {
   pickState.slot = b.dataset.r; SFX.pick(); renderPick();
 });
 $('gallery').addEventListener('click', e => {
-  const b = e.target.closest('.gal'); if(!b) return;
+  const del = e.target.closest('[data-del]');
+  if(del){ e.stopPropagation(); deleteCustom(del.dataset.del, del); return; }
+  if(e.target.closest('[data-make]')){ openMaker(); return; }
+  const b = e.target.closest('.gal'); if(!b || !b.dataset.hasOwnProperty('id')) return;
   skins[pickState.team][pickState.slot] = b.dataset.id || null; evt('skin'); if(pickState.team==='B') evt('skinB');
   saveSkins(); SFX.move();
   const i = ROLES.indexOf(pickState.slot);
@@ -2038,7 +2211,7 @@ $('recReset').onclick = function(){
 };
 function updateMenuRec(){
   const got = REC.badges.filter(id => BADGES.some(x => x.id===id)).length;
-  $('mRec').innerHTML = `🏆 배지 ${got}/${BADGES.length}`;
+  $('mRec').innerHTML = `🏆 ${got}/${BADGES.length}`;
 }
 
 /* =========================================================
@@ -2250,6 +2423,10 @@ setInterval(() => {
 window.__androidBack = function(){
   const on = id => $(id).classList.contains('show');
   if(on('promo')) return true;
+  if(on('duelIn')){ $('duelNo').onclick(); return true; }
+  if(on('duelOut')){ $('duelOutCancel').onclick(); return true; }
+  if(on('maker')){ $('mkClose').onclick(); return true; }
+  if(on('friends')){ $('frClose').onclick(); return true; }
   if(on('guide')){ hide('guide'); return true; }
   if(on('appDl')){ $('appClose').onclick(); return true; }
   if(on('records')){ $('recClose').onclick(); return true; }
@@ -2264,6 +2441,355 @@ window.__androidBack = function(){
   if(on('result')){ $('resHome').onclick(); return true; }
   openSheet(); return true;
 };
+
+
+/* =========================================================
+   📷 사진으로 말 만들기
+   ========================================================= */
+function hashStr(s){
+  let h1 = 0x811c9dc5, h2 = 0x01000193 ^ s.length;
+  for(let i=0; i<s.length; i++){
+    const c = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;
+    h2 = Math.imul(h2 ^ (c + i), 2246822519) >>> 0;
+  }
+  return ('00000000' + h1.toString(16)).slice(-8) + ('0000' + h2.toString(16)).slice(-4);
+}
+const mk = { img:null, zoom:1, x:0, y:0, drag:null, from:'pick' };
+function openMaker(){
+  $('mkStep1').hidden = false; $('mkStep2').hidden = true; $('mkMsg').textContent = '';
+  $('mkCam').value = ''; $('mkAlb').value = '';
+  hide('pick'); show('maker');
+}
+function mkLoad(file){
+  if(!file) return;
+  $('mkMsg').textContent = '사진을 불러오는 중…';
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.onload = () => {
+    mk.img = im; mk.zoom = 1; mk.x = 0; mk.y = 0; $('mkZoom').value = 1;
+    $('mkStep1').hidden = true; $('mkStep2').hidden = false; $('mkMsg').textContent = '';
+    $('mkName').value = $('mkName').value || ('내 말 ' + (myCustom.length + 1));
+    mkDraw();
+  };
+  im.onerror = () => { $('mkMsg').textContent = '⚠️ 사진을 열 수 없어요. 다른 사진을 골라 주세요.'; };
+  im.src = url;
+}
+$('mkCam').addEventListener('change', e => mkLoad(e.target.files[0]));
+$('mkAlb').addEventListener('change', e => mkLoad(e.target.files[0]));
+const MK_R = .4;   // 동그라미 반지름 (캔버스 대비)
+function mkPlace(W){
+  const im = mk.img, base = Math.max(W*MK_R*2 / im.width, W*MK_R*2 / im.height);
+  const s = base * mk.zoom, w = im.width*s, hgt = im.height*s;
+  return { s, w, h:hgt, x: W/2 - w/2 + mk.x*W, y: W/2 - hgt/2 + mk.y*W };
+}
+function mkDraw(){
+  const cv = $('mkCanvas'), W = cv.width, g = cv.getContext('2d');
+  g.clearRect(0, 0, W, W); g.fillStyle = '#444'; g.fillRect(0, 0, W, W);
+  if(!mk.img) return;
+  const P = mkPlace(W);
+  g.drawImage(mk.img, P.x, P.y, P.w, P.h);
+  g.save(); g.fillStyle = 'rgba(0,0,0,.55)'; g.beginPath(); g.rect(0, 0, W, W);
+  g.arc(W/2, W/2, W*MK_R, 0, Math.PI*2, true); g.fill('evenodd'); g.restore();
+  g.lineWidth = W*.012; g.strokeStyle = '#ffd23f'; g.setLineDash([W*.03, W*.02]);
+  g.beginPath(); g.arc(W/2, W/2, W*MK_R, 0, Math.PI*2); g.stroke(); g.setLineDash([]);
+}
+(function(){
+  const cv = $('mkCanvas'); const pts = new Map(); let pinch0 = null;
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, {x:e.clientX, y:e.clientY}); });
+  cv.addEventListener('pointermove', e => {
+    if(!pts.has(e.pointerId) || !mk.img) return;
+    const prev = pts.get(e.pointerId), r = cv.getBoundingClientRect();
+    pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if(pts.size === 1){
+      mk.x += (e.clientX - prev.x) / r.width; mk.y += (e.clientY - prev.y) / r.width;
+    } else if(pts.size === 2){
+      const [a, b] = [...pts.values()], d = Math.hypot(a.x-b.x, a.y-b.y);
+      if(pinch0) mk.zoom = Math.max(1, Math.min(4, mk.zoom * d / pinch0));
+      pinch0 = d; $('mkZoom').value = mk.zoom;
+    }
+    mkDraw();
+  });
+  const up = e => { pts.delete(e.pointerId); if(pts.size < 2) pinch0 = null; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); mk.zoom = Math.max(1, Math.min(4, mk.zoom * (e.deltaY < 0 ? 1.08 : .93))); $('mkZoom').value = mk.zoom; mkDraw(); }, {passive:false});
+})();
+$('mkZoom').addEventListener('input', e => { mk.zoom = +e.target.value; mkDraw(); });
+$('mkRetry').onclick = () => { mk.img = null; $('mkStep1').hidden = false; $('mkStep2').hidden = true; $('mkCam').value = ''; $('mkAlb').value = ''; };
+$('mkClose').onclick = () => { hide('maker'); show('pick'); renderPick(); };
+function mkExport(size){
+  const out = document.createElement('canvas'); out.width = out.height = size;
+  const g = out.getContext('2d'), Wsrc = $('mkCanvas').width, P = mkPlace(Wsrc);
+  const k = (size*0.92) / (Wsrc*MK_R*2), ox = size/2 - Wsrc/2*k, oy = size/2 - Wsrc/2*k;
+  g.save(); g.beginPath(); g.arc(size/2, size/2, size*.46, 0, Math.PI*2); g.clip();
+  g.fillStyle = '#fff'; g.fillRect(0, 0, size, size);
+  g.drawImage(mk.img, ox + P.x*k, oy + P.y*k, P.w*k, P.h*k); g.restore();
+  g.lineWidth = size*.045; g.strokeStyle = '#ffffff';
+  g.beginPath(); g.arc(size/2, size/2, size*.46 - g.lineWidth/2, 0, Math.PI*2); g.stroke();
+  g.lineWidth = size*.018; g.strokeStyle = '#232a4d';
+  g.beginPath(); g.arc(size/2, size/2, size*.46, 0, Math.PI*2); g.stroke();
+  let d = out.toDataURL('image/webp', .82);
+  if(!d.startsWith('data:image/webp')) d = out.toDataURL('image/png');
+  return d;
+}
+$('mkSave').onclick = () => {
+  if(!mk.img) return;
+  if(myCustom.length >= 12){ $('mkMsg').textContent = '⚠️ 사진 말은 12개까지 만들 수 있어요. 안 쓰는 말을 ✕로 지워 주세요.'; return; }
+  let data = mkExport(240);
+  if(data.length > 90000) data = mkExport(180);
+  if(data.length > 90000){ $('mkMsg').textContent = '⚠️ 사진이 너무 커요. 다른 사진으로 해 주세요.'; return; }
+  const id = 'u' + hashStr(data);
+  const name = ($('mkName').value.trim() || '내 말').slice(0, 8);
+  const c = {id, n:name, src:data};
+  if(!CHAR_BY_ID[id]){
+    myCustom.unshift(c);
+    if(!saveCustom()){ myCustom.shift(); $('mkMsg').textContent = '⚠️ 저장 공간이 부족해요. 안 쓰는 사진 말을 지워 주세요.'; return; }
+    addCharRuntime(Object.assign({mine:true}, c));
+  }
+  skins[pickState.team][pickState.slot] = id; saveSkins();
+  SFX.coin(); evt('skin');
+  hide('maker'); show('pick'); renderPick();
+};
+function deleteCustom(id, el){
+  if(!el.classList.contains('arm')){
+    el.classList.add('arm'); el.textContent = '지울까요?';
+    setTimeout(() => { if(el.isConnected){ el.classList.remove('arm'); el.textContent = '✕'; } }, 2500);
+    return;
+  }
+  myCustom = myCustom.filter(c => c.id !== id); saveCustom();
+  ['A','B'].forEach(t => ROLES.forEach(r => { if(skins[t][r]===id) skins[t][r] = DEFAULT_SKINS[t][r]; }));
+  saveSkins(); removeCharRuntime(id); SFX.oops(); renderPick();
+}
+
+/* 온라인 대결 때 내 사진 말을 서버에 올리고, 상대 사진 말은 받아 와요 */
+const uploaded = new Set(), fetching = new Set();
+function uploadMyImages(){
+  const ids = [...new Set(ROLES.map(r => skins.A[r]).filter(id => id && id[0]==='u' && !uploaded.has(id)))];
+  if(!net.ok || !ids.length) return Promise.resolve();
+  return ids.reduce((pr, id) => pr.then(() => {
+    const c = myCustom.find(x => x.id===id); if(!c) return;
+    return net.call('putimg', {hash:id, data:c.src}).then(() => uploaded.add(id)).catch(() => {});
+  }), Promise.resolve());
+}
+function fetchRoomImages(room){
+  const P = room && room.players; if(!P) return;
+  ['w','b'].forEach(col => {
+    const sk = P[col] && P[col].skin; if(!sk) return;
+    ROLES.forEach(r => {
+      const id = sk[r];
+      if(!id || id[0]!=='u' || CHAR_BY_ID[id] || fetching.has(id)) return;
+      fetching.add(id);
+      net.call('getimg', {hash:id}).then(d => {
+        if(d.data){ addCharRuntime({id, n:(P[col].name || '친구') + '의 사진 말', src:d.data}); render(); }
+      }).catch(() => {}).finally(() => setTimeout(() => fetching.delete(id), 8000));
+    });
+  });
+}
+
+/* =========================================================
+   🆔 게임 아이디 & 👥 친구 & ⚔️ 결투 신청
+   ========================================================= */
+const acct = { id:store.get('bc_uid'), token:store.get('bc_utk'), name:store.get('bc_uname'), data:null, timer:null,
+  seenCh:null, out:null, outTimer:null, inCh:null, inTimer:null, ringTimer:null };
+function acctAuth(extra){ return Object.assign({id:acct.id, token:acct.token}, extra || {}); }
+function frMsg(t){ $('frMsg').textContent = t || ''; }
+function openFriends(){
+  hide('menu'); show('friends'); frMsg('');
+  if(!net.ok){ frMsg('⚠️ 파일을 직접 열면 친구 기능이 안 돼요. 앱이나 웹 주소로 열어 주세요.'); }
+  renderFriends(); acctPoll();
+}
+$('mFriends').onclick = openFriends;
+$('frClose').onclick = () => { hide('friends'); show('menu'); };
+function renderFriends(){
+  const has = !!acct.id;
+  $('frSignup').hidden = has; $('frMain').hidden = !has;
+  if(!has){ $('frName').value = $('frName').value || store.get('bc_nick') || ''; return; }
+  $('frMyId').textContent = acct.id; $('frMyName').textContent = acct.name || '';
+  const d = acct.data;
+  if(!d) { $('frList').innerHTML = '<div class="empty">불러오는 중…</div>'; return; }
+  $('frReqs').innerHTML = (d.requests || []).map(r => `
+    <div class="fr req"><span class="fn">🙋 ${esc(r.n)}<small>아이디 ${esc(r.id)} · 친구 신청이 왔어요!</small></span>
+      <button class="btn btn-green" data-acc="${esc(r.id)}">수락</button><button class="x" data-rej="${esc(r.id)}">거절</button></div>`).join('');
+  const fr = (d.friends || []).slice().sort((a, b) => (b.on - a.on) || a.n.localeCompare(b.n));
+  $('frList').innerHTML = fr.length ? fr.map(f => `
+    <div class="fr"><span class="dot${f.on ? ' on' : ''}"></span>
+      <span class="fn">${esc(f.n)}<small>아이디 ${esc(f.id)} · ${f.on ? '지금 접속 중' : '쉬는 중'}</small></span>
+      <button class="btn ${f.on ? 'btn-pink' : 'btn-white'}" data-duel="${esc(f.id)}" ${f.on ? '' : 'disabled'}>⚔️ 결투</button>
+      <button class="x" data-del="${esc(f.id)}">삭제</button></div>`).join('')
+    : '<div class="empty">아직 친구가 없어요.<br>친구 아이디를 입력해서 신청해 보세요!</div>';
+}
+function updateFriendsBadge(){
+  const n = acct.data && acct.data.requests ? acct.data.requests.length : 0;
+  $('mFriends').innerHTML = '👥 친구' + (n ? `<span class="badge-dot">${n}</span>` : '');
+}
+$('frCreate').onclick = () => {
+  const name = $('frName').value.trim().slice(0, 8);
+  if(!name){ frMsg('이름을 적어 주세요!'); return; }
+  $('frCreate').disabled = true; frMsg('');
+  net.call('register', {name}).then(d => {
+    acct.id = d.id; acct.token = d.token; acct.name = d.name;
+    store.set('bc_uid', d.id); store.set('bc_utk', d.token); store.set('bc_uname', d.name); store.set('bc_nick', d.name);
+    SFX.coin(); renderFriends(); acctPoll();
+  }).catch(e => frMsg('⚠️ ' + e.message)).finally(() => { $('frCreate').disabled = false; });
+};
+$('frAddId').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); });
+$('frAdd').onclick = () => {
+  const t = $('frAddId').value;
+  if(!/^\d{6}$/.test(t)){ frMsg('친구 아이디 6자리를 입력해 주세요!'); return; }
+  net.call('friendReq', acctAuth({target:t})).then(d => {
+    $('frAddId').value = '';
+    frMsg(d.status==='friends' ? '🎉 친구가 됐어요!' : '📨 친구 신청을 보냈어요! 친구가 수락하면 목록에 나와요.');
+    SFX.pick(); acctPoll();
+  }).catch(e => frMsg('⚠️ ' + e.message));
+};
+document.querySelector('#friends .card').addEventListener('click', e => {
+  const acc = e.target.closest('[data-acc]'), rej = e.target.closest('[data-rej]'),
+        duel = e.target.closest('[data-duel]'), del = e.target.closest('[data-del]');
+  if(acc || rej){
+    const t = (acc || rej).dataset[acc ? 'acc' : 'rej'];
+    net.call('friendAns', acctAuth({target:t, accept:!!acc})).then(() => { if(acc){ SFX.coin(); frMsg('🎉 친구가 됐어요!'); } acctPoll(); })
+      .catch(err => frMsg('⚠️ ' + err.message));
+  } else if(duel){
+    sendDuel(duel.dataset.duel);
+  } else if(del){
+    if(!del.classList.contains('arm')){ del.classList.add('arm'); del.textContent = '정말?'; setTimeout(() => { if(del.isConnected){ del.classList.remove('arm'); del.textContent = '삭제'; } }, 2500); return; }
+    net.call('unfriend', acctAuth({target:del.dataset.del})).then(acctPoll).catch(err => frMsg('⚠️ ' + err.message));
+  }
+});
+
+/* 접속 확인 + 친구 신청/결투 신청 확인 (몇 초마다) */
+function acctPoll(){
+  clearTimeout(acct.timer);
+  if(!acct.id || !net.ok) return;
+  net.call('me', acctAuth({pid:online.pid})).then(d => {
+    acct.data = d;
+    if(d.name && d.name !== acct.name){ acct.name = d.name; store.set('bc_uname', d.name); }
+    updateFriendsBadge();
+    if($('friends').classList.contains('show')) renderFriends();
+    handleIncoming(d.challenge);
+    handleOutgoing(d.outgoing);
+  }).catch(e => {
+    if(/아이디를 찾을 수 없/.test(e.message)){
+      ['bc_uid','bc_utk','bc_uname'].forEach(k => store.del(k));
+      acct.id = acct.token = null; acct.data = null; renderFriends(); updateFriendsBadge();
+    }
+  }).finally(() => {
+    if(acct.id) acct.timer = setTimeout(acctPoll, document.hidden ? 15000 : 4000);
+  });
+}
+document.addEventListener('visibilitychange', () => { if(!document.hidden) acctPoll(); });
+
+/* ---- 결투 신청 보내기 ---- */
+function sendDuel(target){
+  frMsg('');
+  const f = (acct.data && acct.data.friends || []).find(x => x.id===target);
+  uploadMyImages().then(() => net.call('challenge', acctAuth({target, tc:tcSetting, pid:online.pid, skin:skins.A})))
+    .then(d => {
+      acct.out = d.ch;
+      $('duelOutMsg').innerHTML = `<b>${esc(f ? f.n : target)}</b>에게 결투를 신청했어요!<br>대답을 기다리는 중…`;
+      hide('friends'); show('duelOut'); SFX.check();
+      clearTimeout(acct.outTimer);
+      acct.outTimer = setTimeout(() => { if(acct.out){ cancelDuel(); frMsg('⏰ 친구가 대답하지 않았어요.'); } }, 45000);
+    }).catch(e => frMsg('⚠️ ' + e.message));
+}
+function cancelDuel(){
+  const ch = acct.out; acct.out = null; clearTimeout(acct.outTimer);
+  if(ch) net.call('chCancel', acctAuth({chId:ch.id})).catch(() => {});
+  hide('duelOut'); show('friends'); renderFriends();
+}
+$('duelOutCancel').onclick = cancelDuel;
+function handleOutgoing(o){
+  if(!acct.out || !o || o.id !== acct.out.id) return;
+  if(o.status==='accepted' && o.room){
+    acct.out = null; clearTimeout(acct.outTimer);
+    net.call('get', {code:o.room, pid:online.pid}).then(d => {
+      hide('duelOut'); stopOnline(); enterRoom(d.room);
+      say(myColor, '<span>⚔️ 결투 시작! 친구가 수락했어요!</span>', 'K', 'top', 3000);
+    }).catch(e => { hide('duelOut'); show('friends'); frMsg('⚠️ ' + e.message); });
+  } else if(o.status==='declined' || o.status==='expired'){
+    acct.out = null; clearTimeout(acct.outTimer);
+    hide('duelOut'); show('friends'); renderFriends();
+    frMsg(o.reason==='busy' ? '🎮 친구가 지금 다른 대결 중이에요. 조금 뒤에 다시 신청해 봐요!' : '🙅 친구가 지금은 어렵대요. 다음에 다시 해 봐요!');
+  }
+}
+
+/* ---- 결투 신청 받기: 쾅! ---- */
+function duelSound(){
+  if(!soundOn) return;
+  SFX.boom(true);
+  [220, 330, 440, 660].forEach((f, i) => tone(f, .22, 'sawtooth', .1 + i*.1, .12));
+  [880, 660, 880, 660].forEach((f, i) => tone(f, .14, 'square', .6 + i*.16, .1));
+}
+function handleIncoming(ch){
+  if(!ch || ch.id === acct.seenCh) return;
+  acct.seenCh = ch.id;
+  // 이미 다른 온라인 대결 중이면 자동으로 "바빠요"
+  if(mode==='online' && online.room && online.room.status==='playing' && !over){
+    net.call('chAnswer', acctAuth({chId:ch.id, accept:false, busy:true})).catch(() => {});
+    return;
+  }
+  acct.inCh = ch;
+  $('dvA').innerHTML = pieceSVG('K', 'w').replace(/<svg/, '<svg');
+  $('dvAn').textContent = ch.fromName;
+  $('dvB').innerHTML = slotSVG('A', 'K');
+  $('duelMsg').innerHTML = `<b>${esc(ch.fromName)}</b>이(가) 결투를 신청했어요!${ch.tc ? ` (⏱ ${ch.tc/60}분)` : ''}` +
+    (mode!=='online' && !$('menu').classList.contains('show') && !over ? '<br><small>수락하면 지금 하던 게임은 끝나요</small>' : '');
+  // 상대 말 미리보기: 상대가 고른 킹
+  if(ch.skin && ch.skin.K){
+    const id = ch.skin.K;
+    const showK = () => { if(CHAR_BY_ID[id]) $('dvA').innerHTML = charSVG(id, 'K', 'w'); };
+    if(CHAR_BY_ID[id]) showK();
+    else if(id[0]==='u') net.call('getimg', {hash:id}).then(d => { if(d.data){ addCharRuntime({id, n:ch.fromName + '의 사진 말', src:d.data}); showK(); } }).catch(() => {});
+  }
+  const box = $('duelIn');
+  box.querySelectorAll('.flash,.bolt').forEach(x => x.remove());
+  box.classList.remove('show'); void box.offsetWidth;
+  const fl = document.createElement('div'); fl.className = 'flash'; box.prepend(fl);
+  [['⚡', '8%', '18%'], ['⚡', '78%', '14%'], ['💥', '12%', '70%'], ['🔥', '80%', '72%']].forEach(([t, l, tp], i) => {
+    const b = document.createElement('div'); b.className = 'bolt'; b.textContent = t;
+    Object.assign(b.style, {left:l, top:tp, animationDelay:(.15 + i*.12) + 's'}); box.appendChild(b);
+  });
+  box.classList.add('show');
+  duelSound();
+  try{ if(navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]); }catch(e){}
+  clearInterval(acct.ringTimer);
+  acct.ringTimer = setInterval(() => {
+    if(!soundOn) return;
+    [880, 660, 880, 660].forEach((f, i) => tone(f, .12, 'square', i*.14, .08));
+    try{ if(navigator.vibrate) navigator.vibrate([150, 80, 150]); }catch(e){}
+  }, 2600);
+  const bar = $('duelBar'), LIMIT = 30000, t0 = Date.now();
+  clearInterval(acct.inTimer);
+  bar.style.width = '100%';
+  acct.inTimer = setInterval(() => {
+    const left = Math.max(0, 1 - (Date.now() - t0) / LIMIT);
+    bar.style.width = (left*100) + '%';
+    if(left <= 0) $('duelNo').onclick();
+  }, 100);
+}
+function closeDuelIn(){
+  clearInterval(acct.ringTimer); clearInterval(acct.inTimer);
+  $('duelIn').classList.remove('show'); acct.inCh = null;
+}
+$('duelNo').onclick = () => {
+  const ch = acct.inCh; closeDuelIn();
+  if(ch) net.call('chAnswer', acctAuth({chId:ch.id, accept:false})).catch(() => {});
+};
+$('duelYes').onclick = () => {
+  const ch = acct.inCh; if(!ch) return;
+  $('duelYes').disabled = true;
+  uploadMyImages().then(() => net.call('chAnswer', acctAuth({chId:ch.id, accept:true, pid:online.pid, skin:skins.A})))
+    .then(d => {
+      closeDuelIn(); stopOnline(); gameToken++;
+      enterRoom(d.room);
+      say(myColor, '<span>⚔️ 결투 시작!</span>', 'K', 'top', 2500);
+    })
+    .catch(e => { closeDuelIn(); say('w', `<span>⚠️ ${esc(e.message)}</span>`); })
+    .finally(() => { $('duelYes').disabled = false; });
+};
+
+updateFriendsBadge();
+if(acct.id) setTimeout(acctPoll, 800);
 
 /* 처음 화면 */
 resetLocal(); render();

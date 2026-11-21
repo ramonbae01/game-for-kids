@@ -8,7 +8,9 @@
 """
 import json
 import os
+import hashlib
 import random
+import secrets
 import re
 import socket
 import sys
@@ -20,6 +22,18 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 LOCK = threading.Lock()
 ROOMS = {}
 SEEN = {}
+USERS_FILE = os.path.join(ROOT, 'users.json')   # 게임 아이디 · 친구 목록 (PC에 저장)
+try:
+    USERS = json.load(open(USERS_FILE, encoding='utf-8'))
+except (OSError, ValueError):
+    USERS = {}
+USEEN = {}      # 아이디별 마지막 접속 시각
+CHS = {}        # 결투 신청
+CH_IN = {}      # 받는 사람 아이디 → 신청 id
+CH_OUT = {}     # 보낸 사람 아이디 → 신청 id
+IMGS = {}       # 사진 말
+ONLINE_SEC = 25
+CH_SEC = 45
 ROOM_TTL = 6 * 3600
 LIST_AGE = 15 * 60
 
@@ -38,7 +52,7 @@ def clean_skin(s):
     out = {}
     for k in 'KQRBNP':
         v = s.get(k)
-        out[k] = v if isinstance(v, str) and re.fullmatch(r'c\d{1,3}', v) else None
+        out[k] = v if isinstance(v, str) and re.fullmatch(r'(c\d{1,3}|u[0-9a-f]{12})', v) else None
     return out
 
 
@@ -230,7 +244,181 @@ def handle(a, p):
                     bump(r)
             return {'ok': True}
 
+        s = social(a, p)
+        if s is not None:
+            return s
+
     raise ApiError('알 수 없는 요청: ' + a)
+
+
+# ---------------------------------------------------------------- 게임 아이디 · 친구 · 결투 신청 · 사진 말
+def save_users():
+    tmp = USERS_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(USERS, f, ensure_ascii=False)
+    os.replace(tmp, USERS_FILE)
+
+
+def hash_tok(t):
+    return hashlib.sha256(str(t or '').encode()).hexdigest()
+
+
+def auth(p):
+    u = USERS.get(str(p.get('id', '')))
+    if not u or u['tk'] != hash_tok(p.get('token')):
+        raise ApiError('아이디를 찾을 수 없어요. 다시 만들어 주세요')
+    return u
+
+
+def is_online(uid):
+    return time.time() - USEEN.get(uid, 0) < ONLINE_SEC
+
+
+def ch_view(ch):
+    if not ch:
+        return None
+    if ch['status'] == 'pending' and time.time() - ch['t'] > CH_SEC:
+        ch['status'] = 'expired'
+    return {k: ch.get(k) for k in ('id', 'from', 'fromName', 'to', 'tc', 'skin', 'status', 'room', 'reason')}
+
+
+def add_friend(u, f):
+    u['fr'] = [x for x in u.get('fr', []) if x['id'] != f['id']] + [{'id': f['id'], 'n': f['n']}]
+    u['rq'] = [x for x in u.get('rq', []) if x != f['id']]
+
+
+def social(a, p):
+    if a == 'register':
+        while True:
+            uid = str(random.randint(100000, 999999))
+            if uid not in USERS:
+                break
+        token = secrets.token_hex(24)
+        USERS[uid] = {'id': uid, 'n': clean_name(p.get('name')), 'tk': hash_tok(token), 'fr': [], 'rq': [], 't': time.time()}
+        save_users()
+        return {'id': uid, 'token': token, 'name': USERS[uid]['n']}
+
+    if a == 'me':
+        u = auth(p)
+        USEEN[u['id']] = time.time()
+        friends = [{'id': f['id'], 'n': f['n'], 'on': is_online(f['id'])} for f in u.get('fr', [])]
+        requests = [{'id': USERS[r]['id'], 'n': USERS[r]['n']} for r in u.get('rq', []) if r in USERS]
+        inc = ch_view(CHS.get(CH_IN.get(u['id'])))
+        if inc and inc['status'] != 'pending':
+            inc = None
+        out = ch_view(CHS.get(CH_OUT.get(u['id'])))
+        return {'id': u['id'], 'name': u['n'], 'friends': friends, 'requests': requests, 'challenge': inc, 'outgoing': out}
+
+    if a == 'friendReq':
+        u = auth(p)
+        t = USERS.get(str(p.get('target', '')))
+        if not t:
+            raise ApiError('그 아이디의 친구를 찾을 수 없어요')
+        if t['id'] == u['id']:
+            raise ApiError('내 아이디예요! 친구 아이디를 입력해 주세요')
+        if any(f['id'] == t['id'] for f in u.get('fr', [])):
+            raise ApiError('이미 친구예요')
+        if t['id'] in u.get('rq', []):
+            add_friend(u, t)
+            add_friend(t, u)
+            save_users()
+            return {'status': 'friends'}
+        if u['id'] not in t.setdefault('rq', []):
+            t['rq'] = (t['rq'] + [u['id']])[-30:]
+            save_users()
+        return {'status': 'sent'}
+
+    if a == 'friendAns':
+        u = auth(p)
+        tid = str(p.get('target', ''))
+        u['rq'] = [x for x in u.get('rq', []) if x != tid]
+        t = USERS.get(tid)
+        if p.get('accept') and t:
+            add_friend(u, t)
+            add_friend(t, u)
+        save_users()
+        return {'ok': True}
+
+    if a == 'unfriend':
+        u = auth(p)
+        tid = str(p.get('target', ''))
+        u['fr'] = [f for f in u.get('fr', []) if f['id'] != tid]
+        t = USERS.get(tid)
+        if t:
+            t['fr'] = [f for f in t.get('fr', []) if f['id'] != u['id']]
+        save_users()
+        return {'ok': True}
+
+    if a == 'challenge':
+        u = auth(p)
+        tid = str(p.get('target', ''))
+        f = next((x for x in u.get('fr', []) if x['id'] == tid), None)
+        if not f:
+            raise ApiError('친구에게만 결투를 신청할 수 있어요')
+        if not is_online(tid):
+            raise ApiError('친구가 지금 접속해 있지 않아요')
+        cur = ch_view(CHS.get(CH_IN.get(tid)))
+        if cur and cur['status'] == 'pending' and cur['from'] != u['id']:
+            raise ApiError('친구가 다른 신청을 보고 있어요. 잠시 뒤에 다시 해요!')
+        tc = int(p.get('tc') or 0)
+        ch = {'id': secrets.token_hex(6), 'from': u['id'], 'fromName': u['n'], 'to': tid, 'toName': f['n'],
+              'tc': tc if tc in TC_OK else 0, 'pid': str(p.get('pid', '')), 'skin': clean_skin(p.get('skin')),
+              'status': 'pending', 't': time.time(), 'room': None, 'reason': ''}
+        CHS[ch['id']] = ch
+        CH_IN[tid] = ch['id']
+        CH_OUT[u['id']] = ch['id']
+        return {'ch': ch_view(ch)}
+
+    if a == 'chAnswer':
+        u = auth(p)
+        ch = CHS.get(str(p.get('chId', '')))
+        if not ch or ch['to'] != u['id']:
+            raise ApiError('결투 신청을 찾을 수 없어요')
+        v = ch_view(ch)
+        if v['status'] != 'pending':
+            raise ApiError('친구가 신청을 취소했어요' if v['status'] == 'canceled' else '결투 신청 시간이 지났어요')
+        room = None
+        if p.get('accept'):
+            while True:
+                code = str(random.randint(1000, 9999))
+                if code not in ROOMS:
+                    break
+            room = {'code': code, 'gid': 1, 'ver': 0, 'status': 'playing', 'updated': time.time(),
+                    'players': {'w': {'pid': ch['pid'], 'name': ch['fromName'], 'skin': ch['skin']},
+                                'b': {'pid': str(p.get('pid', '')), 'name': u['n'], 'skin': clean_skin(p.get('skin'))}},
+                    'moves': [], 'result': None, 'rematch': {}, 'tc': ch['tc'], 'clock': None}
+            room['clock'] = fresh_clock(room)
+            bump(room)
+            ROOMS[code] = room
+            ch['status'] = 'accepted'
+            ch['room'] = code
+        else:
+            ch['status'] = 'declined'
+            ch['reason'] = 'busy' if p.get('busy') else ''
+        CH_IN.pop(u['id'], None)
+        return {'ch': ch_view(ch), 'room': pub(room) if room else None}
+
+    if a == 'chCancel':
+        u = auth(p)
+        ch = CHS.get(str(p.get('chId', '')))
+        if ch and ch['from'] == u['id'] and ch['status'] == 'pending':
+            ch['status'] = 'canceled'
+            CH_IN.pop(ch['to'], None)
+        return {'ok': True}
+
+    if a == 'putimg':
+        hsh, data = str(p.get('hash', '')), str(p.get('data', ''))
+        if not re.fullmatch(r'u[0-9a-f]{12}', hsh) or not data.startswith('data:image/') or len(data) > 95000:
+            raise ApiError('사진을 올릴 수 없어요')
+        IMGS[hsh] = data
+        if len(IMGS) > 500:
+            IMGS.pop(next(iter(IMGS)))
+        return {'ok': True}
+
+    if a == 'getimg':
+        return {'data': IMGS.get(str(p.get('hash', '')))}
+
+    return None
 
 
 class Handler(SimpleHTTPRequestHandler):

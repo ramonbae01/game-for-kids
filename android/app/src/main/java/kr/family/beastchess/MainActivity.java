@@ -2,8 +2,15 @@ package kr.family.beastchess;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.graphics.Color;
+import android.content.Intent;
 import android.net.Uri;
+import android.provider.MediaStore;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.OutputStream;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -40,6 +47,9 @@ public class MainActivity extends Activity {
     private static final String START_URL = "https://appassets.androidplatform.net/assets/index.html";
     private WebView web;
     private final ExecutorService pool = Executors.newFixedThreadPool(3);
+    private static final int REQ_FILE = 7001;
+    private ValueCallback<Uri[]> fileCallback;
+    private Uri cameraUri;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -73,6 +83,45 @@ public class MainActivity extends Activity {
                 return !"appassets.androidplatform.net".equals(u.getHost());
             }
         });
+        web.setWebChromeClient(new WebChromeClient() {
+            /* 게임에서 "사진 찍기 / 앨범에서"를 누르면 카메라나 앨범을 열어요 */
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (fileCallback != null) fileCallback.onReceiveValue(null);
+                fileCallback = callback;
+                cameraUri = null;
+                Intent camera = null;
+                try {
+                    File dir = new File(getCacheDir(), "camera");
+                    if (!dir.exists()) dir.mkdirs();
+                    File f = new File(dir, "photo_" + System.currentTimeMillis() + ".jpg");
+                    cameraUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", f);
+                    camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    camera.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri);
+                    camera.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } catch (Exception e) {
+                    camera = null;
+                }
+                Intent intent;
+                if (params.isCaptureEnabled() && camera != null) {
+                    intent = camera;                       // 📷 사진 찍기
+                } else {
+                    Intent pick = new Intent(Intent.ACTION_GET_CONTENT);   // 🖼️ 앨범에서
+                    pick.addCategory(Intent.CATEGORY_OPENABLE);
+                    pick.setType("image/*");
+                    intent = Intent.createChooser(pick, "사진 고르기");
+                    if (camera != null) intent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{camera});
+                }
+                try {
+                    startActivityForResult(intent, REQ_FILE);
+                } catch (Exception e) {
+                    fileCallback = null;
+                    callback.onReceiveValue(null);
+                    return false;
+                }
+                return true;
+            }
+        });
         web.addJavascriptInterface(new NetBridge(), "AndroidNet");
         setContentView(web);
         hideSystemBars();
@@ -99,6 +148,23 @@ public class MainActivity extends Activity {
                             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_FILE || fileCallback == null) return;
+        Uri[] result = null;
+        if (resultCode == RESULT_OK) {
+            if (data != null && data.getData() != null) {
+                result = new Uri[]{data.getData()};               // 앨범에서 고른 사진
+            } else if (cameraUri != null) {
+                result = new Uri[]{cameraUri};                    // 방금 찍은 사진
+            }
+        }
+        fileCallback.onReceiveValue(result);
+        fileCallback = null;
     }
 
     @Override
@@ -163,9 +229,16 @@ public class MainActivity extends Activity {
     }
 
     private static String request(String action, String payloadJson) throws Exception {
-        String url = BuildConfig.GAS_URL
-                + "?api=" + URLEncoder.encode(action, "UTF-8")
-                + "&p=" + URLEncoder.encode(payloadJson == null ? "{}" : payloadJson, "UTF-8");
+        if (payloadJson == null) payloadJson = "{}";
+        String url = BuildConfig.GAS_URL;
+        byte[] postBody = null;
+        if (payloadJson.length() > 1500) {
+            // 사진처럼 큰 데이터는 POST로 보내요
+            postBody = ("{\"api\":" + JSONObject.quote(action) + ",\"p\":" + payloadJson + "}").getBytes(StandardCharsets.UTF_8);
+        } else {
+            url += "?api=" + URLEncoder.encode(action, "UTF-8")
+                    + "&p=" + URLEncoder.encode(payloadJson, "UTF-8");
+        }
         // Apps Script는 결과를 다른 주소로 한 번 넘겨주므로(리다이렉트) 직접 따라가요.
         for (int hop = 0; hop < 5; hop++) {
             HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
@@ -173,6 +246,14 @@ public class MainActivity extends Activity {
             c.setConnectTimeout(10000);
             c.setReadTimeout(15000);
             c.setRequestProperty("Accept", "application/json");
+            if (postBody != null && hop == 0) {
+                c.setRequestMethod("POST");
+                c.setDoOutput(true);
+                c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                OutputStream os = c.getOutputStream();
+                os.write(postBody);
+                os.close();
+            }
             int code = c.getResponseCode();
             if (code >= 300 && code < 400) {
                 String loc = c.getHeaderField("Location");
