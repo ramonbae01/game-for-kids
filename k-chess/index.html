@@ -112,6 +112,14 @@ input{font-family:inherit;color:var(--ink)}
 .toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
 .toast .tav{width:42px;height:42px;flex:0 0 42px}
 .toast .tav svg{width:100%;height:100%}
+/* 말풍선은 체스판을 가리지 않도록 위쪽 플레이어 칸 자리에 겹쳐 보여요 */
+.toast.dock{position:fixed;transform:none;max-width:none;width:auto;z-index:45;border-radius:16px;
+  padding:4px 10px 4px 4px;font-size:clamp(13px,3.5vw,16px);line-height:1.25;overflow:hidden;box-shadow:0 4px 0 var(--ink);
+  transition:opacity .2s}
+.toast.dock.show{transform:none}
+.toast.dock .tav{width:40px;height:40px;flex:0 0 40px}
+.toast.dock.tall{flex-direction:column;text-align:center;justify-content:center;gap:6px;padding:10px 8px}
+.toast.dock.tall .tav{width:60px;height:60px;flex-basis:auto}
 
 /* ---------- 오버레이 ---------- */
 .overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;
@@ -917,7 +925,12 @@ function say(color, text, type, where, ms){
   $('toastTxt').innerHTML = text;
   $('toastAv').innerHTML = pieceSVG(type || 'K', color);
   const t = $('toast');
-  t.classList.toggle('bottom', where==='bottom');
+  // 체스판 위가 아니라, 위쪽 플레이어 칸 자리에 겹쳐서 보여줘요
+  if(t.parentNode !== document.body) document.body.appendChild(t);
+  const r = $('pTop').getBoundingClientRect();
+  t.classList.add('dock');
+  t.classList.toggle('tall', r.height > r.width * .6);   // 가로 화면: 옆쪽 세로 칸
+  Object.assign(t.style, {left:r.left + 'px', top:r.top + 'px', width:r.width + 'px', minHeight:r.height + 'px', maxHeight:Math.max(r.height, 64) + 'px'});
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2600);
@@ -1907,12 +1920,28 @@ function isMine(color){
   if(mode==='ai') return color==='w';
   return color===myColor;
 }
+function badgeGameActive(){
+  return !!S && !over && !$('menu').classList.contains('show') && !$('result').classList.contains('show');
+}
+// 게임이 끝나면(또는 처음 화면에 오면) 모아 둔 배지 축하를 보여줘요
+setInterval(() => {
+  if(!badgeShowing && badgeQueue.length && !badgeGameActive() &&
+     !($('duelIn') && $('duelIn').classList.contains('show'))) showNextBadge();
+}, 700);
 function awardBadges(){
   if(!REC.ev) REC.ev = {};
   const nb = BADGES.filter(b => !REC.badges.includes(b.id) && b.ok(REC));
   nb.forEach(b => { REC.badges.push(b.id); badgeQueue.push(b); });
   saveRec();
-  if(nb.length){ updateMenuRec(); if(!badgeShowing) setTimeout(showNextBadge, 450); }
+  if(nb.length){
+    updateMenuRec();
+    if(badgeGameActive()){
+      // 게임 중: 체스판을 가리지 않게 짧게만 알려요. 큰 축하는 게임이 끝난 뒤!
+      const last = nb[nb.length - 1];
+      say(mode==='online' ? myColor : 'w', `<span>🎖 새 배지 <b>${last.e} ${last.n}</b>${nb.length > 1 ? ` 외 ${nb.length - 1}개` : ''}! 게임이 끝나면 크게 보여줄게요</span>`, 'K', 'top', 2200);
+      try{ if(soundOn){ tone(1047, .1, 'triangle', 0, .08); tone(1568, .16, 'triangle', .09, .08); } }catch(e){}
+    } else if(!badgeShowing) setTimeout(showNextBadge, 450);
+  }
   return nb;
 }
 function evt(name, n){
