@@ -3,6 +3,14 @@
  * - index (HTML) : 게임 화면
  * - api()        : 온라인 대결용 방 관리 (CacheService에 저장, 최대 6시간 유지)
  */
+/* 처음 한 번만: 편집기에서 이 함수를 선택해 ▶ 실행하고 권한을 허용해 주세요 (게임 아이디 저장용) */
+function authorize() {
+  PropertiesService.getScriptProperties().getKeys();
+  CacheService.getScriptCache().put('auth_check', '1', 60);
+  LockService.getScriptLock();
+  Logger.log('권한 확인 완료! 이제 친구 기능을 쓸 수 있어요.');
+}
+
 /* 안드로이드 앱이 큰 데이터(사진 말)를 보낼 때: POST {api, p} */
 function doPost(e) {
   var body = {};
